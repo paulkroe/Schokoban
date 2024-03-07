@@ -1,7 +1,7 @@
 from copy import deepcopy
 class Game:   
 
-    def __init__(self, level_id=None):
+    def __init__(self, level_id=None, disable_prints=True):
 
         # Define the characters for each element in the game
         self.wall = '#'
@@ -18,6 +18,7 @@ class Game:
         self.player_position = self.find_element(self.player)
  
         # Status of the game:
+        self.disable_prints = disable_prints
         self.end = False
         self.turn = 0
         self.reward = 0
@@ -87,6 +88,9 @@ class Game:
             return self.state()
 
     def print_board(self, board=None):
+        if self.disable_prints:
+            return
+        
         if board is None:
             board = self.board
 
@@ -169,11 +173,13 @@ class Game:
         if(self.move_changed_smth):
             if(self.number_of_boxes_on_goal == self.total_number_of_boxes):
                 self.end=True
-                print("WIN!")
+                if self.disable_prints == False:
+                    print("WIN!")
         self.move_changed_smth = False
         if self.turn > 100:
             self.end = True
-            print("LOSE!")
+            if self.disable_prints == False:
+                print("LOSE!")
 
     def log_game(self):
         pass
@@ -202,8 +208,28 @@ class Game:
                     positions.append([x, y])
         return positions
     
+    def convert(self, level):
+        level = deepcopy(level)
+        for i in range(len(level)):
+            for j in range(len(level[i])):
+                if level[i][j] == self.wall:
+                    level[i][j] = 0
+                elif level[i][j] == self.box:
+                    level[i][j] = 1
+                elif level[i][j] == self.goal:
+                    level[i][j] = 2
+                elif level[i][j] == self.player:
+                    level[i][j] = 3
+                elif level[i][j] == self.floor:
+                    level[i][j] = 4
+                elif level[i][j] == self.box_on_goal:
+                    level[i][j] = 5
+                elif level[i][j] == self.player_on_goal:
+                    level[i][j] = 6
+        return level
+
     def state(self):
-        return self.board, self.reward, int(self.end)
+        return self.convert(self.board), self.reward, int(self.end)
 
     def step(self, action):
         board = deepcopy(self.board)
@@ -256,7 +282,7 @@ class Game:
         if number_of_boxes_on_goal == self.total_number_of_boxes:
             reward = 10
             end = 1
-        return board, reward, end
+        return self.convert(board), reward, end
 
 
 if __name__ == "__main__":

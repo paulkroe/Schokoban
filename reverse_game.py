@@ -3,9 +3,9 @@ import random
 from game import Game
 
 class ReverseGame(Game):
-    def __init__(self, game: Game):
+    def __init__(self, game: Game, disable_prints=True):
         super().__init__(level_id=game.level_id)
-        
+        self.disable_prints = disable_prints
         # remove player from board:
         self.board, self.interior = self.reverse_level(self.board)
     
@@ -63,11 +63,15 @@ class ReverseGame(Game):
     def update_game_status(self):
         if(self.move_changed_smth):
             if(self.number_of_boxes_on_goal == 0):
-                print("WIN!")
+                if self.disable_prints == False:
+                    print("WIN!")
+                self.end = True
                 self.reward = 10
         elif self.turn > 50:
-            print("LOSE!")
+            if self.disable_prints == False:
+                print("LOSE!")
             self.reward = 0
+            self.end = 1
         self.move_changed_smth = False
 
     def behind_player(self, position, move=None):
@@ -128,10 +132,22 @@ class ReverseGame(Game):
                     number_of_boxes_on_goal += 1
             player_position = next_player_position
 
+        reward = 0
+        end = 0
+
+        if number_of_boxes_on_goal == 0:
+            reward = 10
+            end = 1
+        return self.convert(board), reward, end
 
 if __name__ == "__main__":
-    random.seed(0)
+    random.seed(3)
     game = Game(level_id=1)
     reverse_game = ReverseGame(game)
-    reverse_game.play()
-    reverse_game.play(["d", "d", "d", "d", "w", "d"])
+    reverse_game.play(["s"])
+    print("---")
+    board, reward, end = reverse_game.step("d")
+    reverse_game.print_board(board)
+    print(reward, end)
+    print("---")
+    reverse_game.print_board()
