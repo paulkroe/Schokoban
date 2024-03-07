@@ -8,12 +8,13 @@ from reverse_game import ReverseGame
 # TODO: the problem here is that the levels differ in size, so the input size will differ.
 # the current solution is to just use the dimension of the largest level and pad the smaller levels with special values (don't think it is a good idea to use walls to pad)
 # probably the location of the padding makes a very big difference (i.e. neurons on the top left have seen much more examples than neurons on the bottom right)
+# in the current solution in most of the training each neuron only sees bedrock. should fix this
 class ValueNetwork(nn.Module):
     def __init__(self, input_size, output_size):
         super(ValueNetwork, self).__init__()
         # Simple linear layer to represent the value function
-        self.embedding = nn.Embedding(num_embeddings=7, embedding_dim=3)
-        self.conv = nn.Conv2d(in_channels=3, out_channels=1, kernel_size=2, stride=1, padding=0) # TODO: output size depends on input size
+        self.embedding = nn.Embedding(num_embeddings=8, embedding_dim=3)
+        self.conv = nn.Conv2d(in_channels=3, out_channels=1, kernel_size=2, stride=1, padding=0) # TODO: 
         self.linear = nn.Linear(input_size, output_size)
 
     def forward(self, state):

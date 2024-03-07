@@ -1,4 +1,5 @@
 from copy import deepcopy
+import random
 class Game:   
 
     def __init__(self, level_id=None, disable_prints=True):
@@ -11,7 +12,7 @@ class Game:
         self.floor = ' '
         self.box_on_goal = '*'
         self.player_on_goal = '+'
-
+        self.bedrock = ':'
         # Initialize the game board as a list of lists (2D array)
         self.level_id = level_id
         self.board = self.random_board() if self.level_id is None else Game.load_microban_level(self.level_id) # need to call base class method for inheritance to work later
@@ -168,6 +169,27 @@ class Game:
             print("ERROR")
             assert(0)
         
+    def embed(self, level=None, by_value=False):
+        # embed level into larger array of size 20*30 at a random position
+        if level is None:
+            level = self.board
+        embedded = [[self.bedrock for _ in range(30)] for _ in range(20)]
+        height = len(level)
+        width = max([len(level[i]) for i in range(height)])
+
+        x_offset = 20 - height
+        y_offset = 30 - width
+
+        x_offset = random.randint(0, x_offset-1)
+        y_offset = random.randint(0, y_offset-1)
+
+        for i in range(height):
+            for j in range(len(level[i])):
+                embedded[i+x_offset][j+y_offset] = level[i][j]
+        if not by_value:
+            self.board = embedded
+            self.player_position = self.find_element(self.player)
+        return embedded
 
     def update_game_status(self):
         if(self.move_changed_smth):
@@ -226,6 +248,8 @@ class Game:
                     level[i][j] = 5
                 elif level[i][j] == self.player_on_goal:
                     level[i][j] = 6
+                elif level[i][j] == self.bedrock:
+                    level[i][j] = 7
         return level
 
     def state(self):
@@ -286,5 +310,7 @@ class Game:
 
 
 if __name__ == "__main__":
-    Wearhouse = Game(15)
+    Wearhouse = Game(15, disable_prints=False)
+    Wearhouse.embed()
+    Wearhouse.print_board()
     Wearhouse.play()
