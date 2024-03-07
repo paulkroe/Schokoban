@@ -22,6 +22,7 @@ class Game:
         self.disable_prints = disable_prints
         self.end = False
         self.turn = 0
+        self.max_number_of_turns = 25
         self.reward = 0
         self.move_changed_smth = False
         self.number_of_boxes_on_goal = len(self.find_elements(self.box_on_goal))
@@ -189,6 +190,7 @@ class Game:
         if not by_value:
             self.board = embedded
             self.player_position = self.find_element(self.player)
+
         return embedded
 
     def update_game_status(self):
@@ -198,7 +200,7 @@ class Game:
                 if self.disable_prints == False:
                     print("WIN!")
         self.move_changed_smth = False
-        if self.turn > 100:
+        if self.turn > self.max_number_of_turns:
             self.end = True
             if self.disable_prints == False:
                 print("LOSE!")
@@ -230,6 +232,7 @@ class Game:
                     positions.append([x, y])
         return positions
     
+    # not needed for now
     def convert(self, level):
         level = deepcopy(level)
         for i in range(len(level)):
@@ -252,10 +255,10 @@ class Game:
                     level[i][j] = 7
         return level
 
-    def state(self):
-        return self.convert(self.board), self.reward, int(self.end)
+    def state(self, gamma=0):
+        return [self.targets(), self.distance(), self.gamma1(gamma), self.gamma2(gamma)], self.reward, self.end
 
-    def step(self, action):
+    def step(self, action, gamma=0):
         board = deepcopy(self.board)
         player_position = deepcopy(self.player_position)
         number_of_boxes_on_goal = self.number_of_boxes_on_goal
@@ -306,8 +309,20 @@ class Game:
         if number_of_boxes_on_goal == self.total_number_of_boxes:
             reward = 10
             end = 1
-        return self.convert(board), reward, end
-
+        return [self.targets(), self.distance(), self.gamma1(gamma), self.gamma2(gamma)], reward, end
+     
+     # functions to calculate the state for th RL agent
+    def targets(self):
+        return self.number_of_boxes_on_goal
+    def gamma1(self, gamma):
+        return pow(gamma, self.total_number_of_boxes)
+    def gamma2(self, gamma):
+        return pow(gamma, self.total_number_of_boxes - self.number_of_boxes_on_goal)
+    #TODO: get something more sophisticated here
+    def distance(self):
+        boxes = self.find_elements(self.box)
+        goals = self.find_elements(self.goal) + self.find_elements(self.player_on_goal)
+        return sum([abs(boxes[i][0] - goals[i][0]) + abs(boxes[i][1] - goals[i][1]) for i in range(len(boxes))])
 
 if __name__ == "__main__":
     Wearhouse = Game(15, disable_prints=False)

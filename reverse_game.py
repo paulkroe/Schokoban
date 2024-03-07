@@ -8,6 +8,7 @@ class ReverseGame(Game):
         self.disable_prints = disable_prints
         # remove player from board:
         self.board, self.interior = self.reverse_level(self.board)
+        self.max_number_of_turns = 25
     
     def reverse_level(self, level):
 
@@ -67,7 +68,7 @@ class ReverseGame(Game):
                     print("WIN!")
                 self.end = True
                 self.reward = 10
-        elif self.turn > 50:
+        elif self.turn > self.max_number_of_turns:
             if self.disable_prints == False:
                 print("LOSE!")
             self.reward = 0
@@ -110,7 +111,7 @@ class ReverseGame(Game):
                     self.number_of_boxes_on_goal += 1
             self.player_position = next_player_position
 
-    def step(self, action):
+    def step(self, action, gamma=0):
         board = deepcopy(self.board)
         player_position = deepcopy(self.player_position)
         number_of_boxes_on_goal = self.number_of_boxes_on_goal
@@ -138,7 +139,7 @@ class ReverseGame(Game):
         if number_of_boxes_on_goal == 0:
             reward = 10
             end = 1
-        return self.convert(board), reward, end
+        return [self.targets(), self.distance(), self.gamma1(gamma), self.gamma2(gamma)], reward, end
 
 if __name__ == "__main__":
     random.seed(3)
