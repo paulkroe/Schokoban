@@ -59,7 +59,6 @@ class Agent():
             # use microban level 3
 
             env = ReverseGame(Game(level_id=3))
-            env.embed()
             _ , _ , done = env.state(self.gamma)
             # TODO: convert chars to numbers, then add embedding layer to network
             while not done:
@@ -75,7 +74,6 @@ class Agent():
             tries += 1
             # use microban level 3
             env = ReverseGame(Game(level_id=3))
-            env.embed()
             state, _ , done = env.state(self.gamma)
             # TODO: convert chars to numbers, then add embedding layer to network
             while not done:
@@ -114,7 +112,7 @@ if __name__ == "__main__":
 
     # Train the agent
     #wins1, tries1 = agent.train(num_episodes=100)  # Train for 1000 episodes
-    wins2, tries2 = agent2.train(num_episodes=10001)  # Train for 1000 episodes
+    wins2, tries2 = agent2.train(num_episodes=5000)  # Train for 1000 episodes
     print(wins2/tries2)
     wins3, tries3 = agent3.random_baseline(num_episodes=1000)  # Train for 1000 episodes
     print(wins3/tries3)

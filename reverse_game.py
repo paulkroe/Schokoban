@@ -36,28 +36,6 @@ class ReverseGame(Game):
 
         return level, interior
 
-    def find_interior(self, level):
-        # find the interior of the level
-        level = deepcopy(level)
-        height = len(level)
-        width = max([len(level[i]) for i in range(height)])
-        interior = [['#' for j in range(width)] for i in range(height)]
-        
-        # use breadth first search to find the interior
-        queue = [self.find_element(self.box_on_goal, level)] if self.find_element(self.box_on_goal, level) else [self.find_element(self.box, level)] # TODO: this will fail for 155 since there are boxes that are isolated
-        while queue:
-            x, y = queue.pop(0)
-            if interior[x][y] == '#':
-                interior[x][y] = ' '
-                for dx, dy in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
-                    new_x, new_y = x + dx, y + dy
-                    if 0 <= new_x < height and 0 <= new_y < width and level[new_x][new_y] in [self.floor, self.goal, self.box, self.box_on_goal, self.player, self.player_on_goal]:
-                        if interior[new_x][new_y] == '#':
-                            queue.append((new_x, new_y))
-                            level[new_x][new_y] = ';' # mark as visited
-
-        return interior
-
     def load_microban_level(self, level_id):
         return self.reverse_level(super().load_microban_level(level_id))
 

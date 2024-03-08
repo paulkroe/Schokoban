@@ -1,5 +1,8 @@
 from copy import deepcopy
+from collections import deque
 import random
+from scipy.optimize import linear_sum_assignment
+
 class Game:   
 
     def __init__(self, level_id=None, disable_prints=True):
@@ -22,7 +25,7 @@ class Game:
         self.disable_prints = disable_prints
         self.end = False
         self.turn = 0
-        self.max_number_of_turns = 25
+        self.max_number_of_turns = 100
         self.reward = 0
         self.move_changed_smth = False
         self.number_of_boxes_on_goal = len(self.find_elements(self.box_on_goal))
@@ -205,6 +208,28 @@ class Game:
             if self.disable_prints == False:
                 print("LOSE!")
 
+    def find_interior(self, level):
+        # find the interior of the level
+        level = deepcopy(level)
+        height = len(level)
+        width = max([len(level[i]) for i in range(height)])
+        interior = [['#' for j in range(width)] for i in range(height)]
+        
+        # use breadth first search to find the interior
+        queue = deque([self.find_element(self.box_on_goal, level)] if self.find_element(self.box_on_goal, level) else [self.find_element(self.box, level)]) # TODO: this will fail for 155 since there are boxes that are isolated
+        while queue:
+            x, y = queue.popleft()
+            if interior[x][y] == '#':
+                interior[x][y] = ' '
+                for dx, dy in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
+                    new_x, new_y = x + dx, y + dy
+                    if 0 <= new_x < height and 0 <= new_y < width and level[new_x][new_y] in [self.floor, self.goal, self.box, self.box_on_goal, self.player, self.player_on_goal]:
+                        if interior[new_x][new_y] == '#':
+                            queue.append((new_x, new_y))
+                            level[new_x][new_y] = ';' # mark as visited
+
+        return interior
+
     def log_game(self):
         pass
 
@@ -318,14 +343,80 @@ class Game:
         return pow(gamma, self.total_number_of_boxes)
     def gamma2(self, gamma):
         return pow(gamma, self.total_number_of_boxes - self.number_of_boxes_on_goal)
-    #TODO: get something more sophisticated here
-    def distance(self):
-        boxes = self.find_elements(self.box)
-        goals = self.find_elements(self.goal) + self.find_elements(self.player_on_goal)
-        return sum([abs(boxes[i][0] - goals[i][0]) + abs(boxes[i][1] - goals[i][1]) for i in range(len(boxes))])
+    
+    # TODO: get something more sophisticated here: taking into account the player movement when he goes from box to box
+    # current idea: model problem as assignment problem (the assumption that the graph is bipartite fully connected might be violated for example:
+    #   #######
+    #   #.$@$.#
+    #   ####### )
+    # Nevertheless we use BFS to compute the pairwise distances (ignoring other boxes and the player, only worrying about the walls themselves) and then we use the Hungarian algorithm to solve the assignment problem
 
+    # returns matrix of pairwise distances
+    def get_pairwise_distances(self):
+        box_positions = sorted(self.find_elements(self.box) + self.find_elements(self.box_on_goal))
+        goal_positions = sorted(self.find_elements(self.goal) + self.find_elements(self.player_on_goal) + self.find_elements(self.box_on_goal))
+        assert(len(box_positions) == len(goal_positions))
+        size = len(box_positions)
+        
+        distances = [[0 for _ in range(size)] for _ in range(size)]
+        for i in range(size):
+            box_distances = self.bfs(box_positions[i], goal_positions)
+            for j in range(size):
+                distances[i][j] = box_distances[(goal_positions[j][0], goal_positions[j][1])]
+        
+        return distances
+    
+    def sort_dict_by_keys(d):
+        sorted_keys = sorted(d.keys())
+        sorted_dict = {k: d[k] for k in sorted_keys}
+        return sorted_dict
+
+    def bfs(self, start, end):
+        distance = {}  # Stores distance to each position
+        reached_goals = set()  # To keep track of reached goals
+        queue = deque([start])  # Use deque for efficient FIFO queue management
+        height = len(self.board)
+        width = max(len(row) for row in self.board)
+        visited = [[False for _ in range(width)] for _ in range(height)]  # Correct dimensioning
+        visited[start[0]][start[1]] = True  # Mark start as visited
+        
+        step = 0  # Initialize step count
+        while queue:
+            for _ in range(len(queue)):
+                x, y = queue.popleft()  # Efficient pop from left
+                if [x, y] in end:
+                    reached_goals.add((x, y))
+                    distance[(x, y)] = step
+                    if len(reached_goals) == len(end):  # Check if all goals are reached
+                        return distance  # Return distance to all goals if found
+
+                for dx, dy in [(1, 0), (-1, 0), (0, 1), (0, -1)]:  # Check all 4 directions
+                    new_x, new_y = x + dx, y + dy
+                    if 0 <= new_x < height and 0 <= new_y < width and not visited[new_x][new_y]:
+                        if self.board[new_x][new_y] in [self.floor, self.goal, self.box, self.box_on_goal, self.player, self.player_on_goal]:
+                            queue.append((new_x, new_y))  # Enqueue if not visited and is a valid position
+                            visited[new_x][new_y] = True  # Mark as visited
+
+            step += 1  # Increment step after exploring current level
+
+        return distance 
+
+
+    def distance(self):
+        cost_matrix = self.get_pairwise_distances()
+
+        # using the Hungarian algorithm to solve the assignment problem
+        row_ind, col_ind = linear_sum_assignment(cost_matrix)
+        # Calculate the minimum cost based on ithe assignment
+        min_cost = sum([cost_matrix[row_ind[i]][col_ind[i]] for i in range(len(row_ind))])
+        print("Minimum cost:", min_cost)
+        return min_cost
+    
 if __name__ == "__main__":
-    Wearhouse = Game(15, disable_prints=False)
-    Wearhouse.embed()
+    Wearhouse = Game(3, disable_prints=False)
+    #Wearhouse.play()
     Wearhouse.print_board()
-    Wearhouse.play()
+    box = Wearhouse.find_element(Wearhouse.box)
+    # print(Wearhouse.bfs(box, Wearhouse.find_elements(Wearhouse.goal) + Wearhouse.find_elements(Wearhouse.player_on_goal) + Wearhouse.find_elements(Wearhouse.box_on_goal)))
+    Wearhouse.get_pairwise_distances()
+    Wearhouse.distance()
