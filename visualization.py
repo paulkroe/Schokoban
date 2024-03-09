@@ -1,7 +1,10 @@
 import pygame
 import sys
+import re
 from game import Game
 from reverse_game import ReverseGame
+import json
+
 class Engine:
     def __init__(self, game):
         self.game = game
@@ -49,27 +52,87 @@ class Engine:
         font = pygame.font.Font(None, tile_size)
         return tile_size
 
-    def handle_key_events(self, event, game):
+    def handle_key_events(self, event):
+        move = None
         if event.key in [pygame.K_UP, pygame.K_w]:
-            self.game.play(moves="w", gamma=1)
-            self.game.print_board()
+            move = "w"
         elif event.key in [pygame.K_DOWN, pygame.K_s]:
-            self.game.play(moves="s", gamma=1)
-            self.game.print_board()
+            move = "s"
         elif event.key in [pygame.K_LEFT, pygame.K_a]:
-            self.game.play(moves="a", gamma=1)
-            self.game.print_board()
+            move = "a"
         elif event.key in [pygame.K_RIGHT, pygame.K_d]:
-            self.game.play(moves="d", gamma=1)
-            self.game.print_board()
-        return game
+           move = "d" 
+        state, reward, done = self.game.play(moves=move, gamma=0.99)
+        print(f"state: {state}, reward: {reward}, done: {done}")
+    
+    def replay(self, level_id, moves, mode):
+        # Initialize Pygame
+        pygame.init()
+        if mode == "game":
+                game = Game(level_id=level_id)
+        else:
+            game = ReverseGame(Game(level_id=level_id))
+        
+        # Initialize the screen outside the loop
+        screen = self.initialize_pygame("Sokoban Game", (640, 480))
+        tile_size = min(screen.get_width() // len(game.board[0]), screen.get_height() // len(game.board))
+        font = pygame.font.Font(None, 36)
 
-    def visualize(self, game):
+        # Load images
+        wall_image, goal_image = self.load_images(tile_size, 'images/wall.png', 'images/target.png')
+
+        while moves:
+            if mode == "game":
+                game = Game(level_id=level_id)
+            else:
+                game = ReverseGame(Game(level_id=level_id))
+            game.board[game.player_position[0]][game.player_position[1]] = game.floor
+            game.player_position = moves.pop(0)
+            game.board[game.player_position[0]][game.player_position[1]] = game.floor
+            print(f"player position: {game.player_position}")
+            
+            running = True
+            # Main loop
+            while running:
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        running = False
+                    elif event.type == pygame.VIDEORESIZE:
+                        # Handle window resize
+                        screen = pygame.display.set_mode(event.size, pygame.RESIZABLE)
+                        tile_size = self.handle_resize(screen, game)
+                        wall_image, goal_image = self.load_images(tile_size, 'images/wall.png', 'images/target.png')
+
+                    elif event.type == pygame.KEYDOWN:
+                        if len(moves) == 0:
+                            running = False 
+                        # continue if space bar is pressed
+                        elif event.key in [pygame.K_SPACE]:
+                            print(moves[0])
+                            if moves and moves[0] in ["w", "a", "s", "d"]:
+                                state, reward, done = game.play(moves.pop(0), gamma=0.99)
+                                print(f"state: {state}, reward: {reward}, done: {done}")
+                                # Remove running flag to exit the loop after one move
+                            else:
+                                running = False
+
+                # Clear the screen
+                screen.fill((0, 0, 0))
+
+                # Draw the game board
+                self.draw_board(screen, game.board, tile_size, wall_image, goal_image)
+
+                # Update the display
+                pygame.display.flip()
+
+        pygame.quit()
+
+            
+    def visualize(self):
         # Initialize Pygame
         screen = self.initialize_pygame("Sokoban Game", (640, 480))
     
-        tile_size = min(screen.get_width() // len(game.board[0]), screen.get_height() // len(game.board))
-        font = pygame.font.Font(None, 36)
+        tile_size = min(screen.get_width() // len(self.game.board[0]), screen.get_height() // len(self.game.board))
         
         # Load images
         wall_image, goal_image = self.load_images(tile_size, 'images/wall.png', 'images/target.png')
@@ -84,17 +147,17 @@ class Engine:
                 elif event.type == pygame.VIDEORESIZE:
                     # Handle window resize
                     screen = pygame.display.set_mode(event.size, pygame.RESIZABLE)
-                    tile_size = self.handle_resize(screen, game)
+                    tile_size = self.handle_resize(screen, self.game)
                     wall_image, goal_image = self.load_images(tile_size, 'images/wall.png', 'images/target.png')
 
                 elif event.type == pygame.KEYDOWN:
-                    self.handle_key_events(event, game)
+                    self.handle_key_events(event)
 
             # Clear the screen
             screen.fill((0, 0, 0))
 
             # Draw the game board
-            self.draw_board(screen, game.board, tile_size, wall_image, goal_image)
+            self.draw_board(screen, self.game.board, tile_size, wall_image, goal_image)
 
             # Update the display
             pygame.display.flip()
@@ -102,16 +165,30 @@ class Engine:
         pygame.quit()
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print("Usage: python script.py arg1 arg2")
+    mode = sys.argv[1]
+    level_id = sys.argv[2]
+    file_path = sys.argv[3:]
+   
+    moves = None
+     
+    if file_path:
+        file_path = file_path[0]
+        with open(file_path, "r") as file:
+            json_data = file.read()
+    
+        moves = json.loads(json_data)
+
+    if moves:
+        engine = Engine(None)
+        engine.replay(int(level_id), moves, mode)
+        
+    elif mode == "game":
+        game = Game(level_id=int(level_id))
+        engine = Engine(game)
+        engine.visualize()
+        
     else:
-        mode = sys.argv[1]
-        level_id = sys.argv[2]
-        if mode == "game":
-            game = Game(level_id=int(level_id))
-            engine = Engine(game)
-            engine.visualize(game)
-        else:
-            game = ReverseGame(Game(level_id=len(level_id)))
-            engine = Engine(game)
-            engine.visualize(game)
+        print("reverse")
+        game = ReverseGame(Game(level_id=int(level_id)))
+        engine = Engine(game)
+        engine.visualize()

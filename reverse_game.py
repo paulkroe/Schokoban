@@ -8,7 +8,7 @@ class ReverseGame(Game):
         self.disable_prints = disable_prints
         # remove player from board:
         self.board, self.interior = self.reverse_level(self.board)
-        self.max_number_of_turns = 100
+        self.max_number_of_turns = 50
     
     def reverse_level(self, level):
 
@@ -30,6 +30,8 @@ class ReverseGame(Game):
         # TODO: set player in starting position correctly, in some cases this might result in an unsolvable situation or even palcement out of the level (have to solve this using that it is in the same connected component)
         interior = self.find_interior(level)
         self.player_position = random.choice(self.find_elements(self.floor, interior))
+        while self.player_position in goals: # make sure player is not placed on a box
+            self.player_position = random.choice(self.find_elements(self.floor, interior))
         level[self.player_position[0]][self.player_position[1]] = self.player
         self.number_of_boxes_on_goal = len(self.find_elements(self.box_on_goal, level))
         self.total_number_of_boxes = self.number_of_boxes_on_goal
@@ -118,10 +120,23 @@ class ReverseGame(Game):
             reward = 10
             end = 1
         return [self.targets(board=board), self.distance(board=board), self.gamma1(gamma=gamma), self.gamma2(gamma=gamma, board=board), self.connectivity(board=board)], reward, end
-
+    def distance(self, board=None):
+        # return distance to next box that is not on goal
+        if board is None:
+            board = self.board
+        boxes_on_goal = self.find_elements(self.box_on_goal, board)
+        player_position = self.find_element(self.player, board)
+        if player_position is None:
+            player_position = self.find_element(self.player_on_goal, board)
+        if len(boxes_on_goal) == 0:
+            return 0
+        else:
+            distance = self.bfs(player_position, boxes_on_goal, board)
+        return sum(distance.values())
+        
 if __name__ == "__main__":
     random.seed(3)
     game = Game(level_id=1)
     reverse_game = ReverseGame(game, disable_prints=False)
-    reverse_game.embed()
-    reverse_game.play()
+    reverse_game.print_board()
+    reverse_game.distance()

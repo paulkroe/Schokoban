@@ -38,7 +38,7 @@ class Game:
     def load_microban_level(level_id):
         # load microban level, levels are indexed from 1 to 155
 
-        if level_id < 1 or level_id > 155:
+        if level_id < 0 or level_id > 155:
             raise ValueError("Level ID must be between 1 and 155 for Microban levels.")
         
         with open(f"levels/microban.txt", "r") as file:
@@ -392,7 +392,7 @@ class Game:
                 visited[x][y] = 1
                 for dx, dy in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
                     new_x, new_y = x + dx, y + dy
-                    if not visited[new_x][new_y] and board[new_x][new_y] == self.floor:
+                    if not visited[new_x][new_y] and board[new_x][new_y] in [self.floor, self.goal, self.player, self.player_on_goal]:
                         queue.append((new_x, new_y))
 
         return connected_components # we want this to be normalized maybe this will do it, seems unlikely that board has more than 10 connected components?
