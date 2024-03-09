@@ -68,7 +68,6 @@ class Game:
                 self.current_move = move
                 self.update_positions()
                 self.update_game_status()
-                self.log_game()
                 self.print_board()
                 self.turn += 1
             return self.state(gamma=gamma)

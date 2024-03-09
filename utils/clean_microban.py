@@ -43,8 +43,6 @@ def print_board(board):
     for row in board:
         print("".join(row))
 
-
-
 with open(f"original_microban.txt", "r") as file:
     transformed = []
     lines = file.readlines()
