@@ -2,41 +2,43 @@ from copy import deepcopy
 from collections import deque
 import random
 from scipy.optimize import linear_sum_assignment
+from enum import Enum
+
+class GameElements(Enum):
+    WALL = '#'
+    BOX = '$'
+    GOAL = '.'
+    PLAYER = '@'
+    FLOOR = ' '
+    BOX_ON_GOAL = '*'
+    PLAYER_ON_GOAL = '+'
+    BEDROCK = ':'
 
 class Game:
 
     def __init__(self, level_id=None, disable_prints=True):
 
-        # Define the characters for each element in the game
-        self.wall = '#'
-        self.box = '$'
-        self.goal = '.'
-        self.player = '@'
-        self.floor = ' '
-        self.box_on_goal = '*'
-        self.player_on_goal = '+'
-        self.bedrock = ':'
-        
         # Initialize the game board as a list of lists (2D array)
         self.level_id = level_id
-        self.board = self.random_board() if self.level_id is None else Game.load_microban_level(self.level_id) # need to call base class method for inheritance to work later
-        self.player_position = self.find_element(self.player)
- 
+        self.board = self.random_board() if self.level_id is None else Game.load_microban_level(self.level_id)
+        
+        # Initialize the game elements
+        self.player_position = self.find_element([GameElements.PLAYER.value, GameElements.PLAYER_ON_GOAL.value])
+        self.box_positions = sorted(self.find_elements([GameElements.BOX.value, GameElements.BOX_ON_GOAL.value]))
+        self.goal_positions = sorted(self.find_elements([GameElements.PLAYER_ON_GOAL.value, GameElements.BOX_ON_GOAL.value, GameElements.GOAL.value]))
+        
         # Status of the game:
         self.disable_prints = disable_prints
         self.end = False
         self.turn = 0
         self.max_number_of_turns = 100
         self.reward = 0
-        self.move_changed_smth = False
-        self.number_of_boxes_on_goal = len(self.find_elements(self.box_on_goal))
-        self.total_number_of_boxes = len(self.find_elements(self.box)) + self.number_of_boxes_on_goal
 
         # Status of the player:
         self.current_move = None
   
+    # POST: Returns the board of the Microban level with the given level_id. level_id == 0 corresponds to a dummy training level used for testing.
     def load_microban_level(level_id):
-        # load microban level, levels are indexed from 1 to 155
 
         if level_id < 0 or level_id > 155:
             raise ValueError("Level ID must be between 1 and 155 for Microban levels.")
@@ -50,20 +52,21 @@ class Game:
                         j += 1
                     level = [list(lines[k][:-1]) for k in range(i+2,j-1)]
                     return level
-
+    
+    # Main loop of the game. If the game is played via the command line interface no moves need to be passed as arguments.
+    # If the game is played step by step by an agent for example, the moves need to be passed as arguments.
+    # The gamma parameter is used to compute the features of the state that are fed into the RL agent.
     def play(self, moves=None, gamma=None):
         self.print_board()
         if moves is None:
             while(True):
-                    print(f"{self.number_of_boxes_on_goal}/{self.total_number_of_boxes}")
+                    print(f"{int(self.targets(self.box_positions) * len(self.box_positions))}/{len(self.box_positions)}")
                     self.input()
                     self.update_positions()
                     self.update_game_status()
-                    self.log_game()
                     self.print_board()
                     self.turn += 1
         else:
-            
             for move in moves:
                 self.current_move = move
                 self.update_positions()
@@ -71,7 +74,8 @@ class Game:
                 self.print_board()
                 self.turn += 1
             return self.state(gamma=gamma)
-
+        
+    # POST: Returns a move in ['w', 'a', 's', 'd']
     def input(self):
         while(True):
             user_input = input().strip().lower()
@@ -82,235 +86,222 @@ class Game:
                 print("Invalid input. Please enter 'w', 'a', 's', 'd'")
                 return
 
+    # Prints the current state of the game board
     def print_board(self, board=None):
         if self.disable_prints:
             return
-        
         if board is None:
             board = self.board
-
         for row in board:
             print("".join(row)) 
-
-    def embed(self, level=None, by_value=False):
-        # embed level into larger array of size 20*30 at a random position
-        if level is None:
-            level = self.board
-        embedded = [[self.bedrock for _ in range(30)] for _ in range(20)]
-        height = len(level)
-        width = max([len(level[i]) for i in range(height)])
-
-        x_offset = 20 - height
-        y_offset = 30 - width
-
-        x_offset = random.randint(0, x_offset-1)
-        y_offset = random.randint(0, y_offset-1)
-
-        for i in range(height):
-            for j in range(len(level[i])):
-                embedded[i+x_offset][j+y_offset] = level[i][j]
-        if not by_value:
-            self.board = embedded
-            self.player_position = self.find_element(self.player)
-
-        return embedded
-
+    
+    # POST: Returns the position of the first occurrence of element on the board
+    # Search starts from the top left corner of the board
+    # If a list of elements is passed, the function returns the position of the first occurrence of any of the elements
     def find_element(self, element, board=None):
         if board is None:
             board = self.board
-        """Find the position of a single element (e.g., the player)"""
-        for x, row in enumerate(board):
-            for y, char in enumerate(row):
-                if char == element:
-                    return [x, y]
+
+        if isinstance(element, list):
+            for e in element:
+                for x, row in enumerate(board):
+                    for y, char in enumerate(row):
+                        if char == e:
+                            return [x, y]
+        else:
+            for x, row in enumerate(board):
+                for y, char in enumerate(row):
+                    if char == element:
+                        return [x, y]
         return None
 
+
+    # POST: Returns the positions of all occurrences of element on the board
+    # Search starts from the top left corner of the board
+    # If a list of elements is passed, the function returns the positions of all occurrences of all the elements
     def find_elements(self, element, board=None):
         if board is None:
             board = self.board
-        """Find positions of multiple elements (e.g., boxes)"""
-        positions = []
-        for x, row in enumerate(board):
-            for y, char in enumerate(row):
-                if char == element:
-                    positions.append([x, y])
-        return positions
-    
-    def convert(self, level):
-        level = deepcopy(level)
-        for i in range(len(level)):
-            for j in range(len(level[i])):
-                if level[i][j] == self.wall:
-                    level[i][j] = 0
-                elif level[i][j] == self.box:
-                    level[i][j] = 1
-                elif level[i][j] == self.goal:
-                    level[i][j] = 2
-                elif level[i][j] == self.player:
-                    level[i][j] = 3
-                elif level[i][j] == self.floor:
-                    level[i][j] = 4
-                elif level[i][j] == self.box_on_goal:
-                    level[i][j] = 5
-                elif level[i][j] == self.player_on_goal:
-                    level[i][j] = 6
-                elif level[i][j] == self.bedrock:
-                    level[i][j] = 7
-        return level
 
- 
-    def find_interior(self, level):
-        level = deepcopy(level)
-        height = len(level)
-        width = max([len(level[i]) for i in range(height)])
-        interior = [['#' for j in range(width)] for i in range(height)]
+        positions = [
+            [x, y]
+            for x, row in enumerate(board)
+            for y, char in enumerate(row)
+            if (isinstance(element, list) and char in element) or char == element
+        ]
+        return positions
+
+    
+    # POST: uses bfs to return the interior of a given board.
+    # For example, the interior of the following board:
+    # #####::
+    # #   ###
+    # #.$@$.#
+    # #######
+    # is:
+    # #####::
+    # #   ###
+    # #     #
+    # #######
+    def find_interior(self, board=None):
+        if board is None:
+            board = self.board
+        board = deepcopy(board)
+        height = len(board)
+        width = max([len(board[i]) for i in range(height)])
+        interior = [[GameElements.WALL.value for _ in range(width)] for _ in range(height)]
         
         # use breadth first search to find the interior
-        queue = deque([self.find_element(self.box_on_goal, level)] if self.find_element(self.box_on_goal, level) else [self.find_element(self.box, level)]) # TODO: this will fail for 155 since there are boxes that are isolated
+        queue = deque([self.player_position])
         while queue:
             x, y = queue.popleft()
-            if interior[x][y] == '#':
-                interior[x][y] = ' '
+            if interior[x][y] == GameElements.WALL.value:
+                interior[x][y] = GameElements.FLOOR.value
                 for dx, dy in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
                     new_x, new_y = x + dx, y + dy
-                    if 0 <= new_x < height and 0 <= new_y < width and level[new_x][new_y] in [self.floor, self.goal, self.box, self.box_on_goal, self.player, self.player_on_goal]:
-                        if interior[new_x][new_y] == '#':
+                    if 0 <= new_x < height and 0 <= new_y < width and board[new_x][new_y] in [GameElements.FLOOR.value, GameElements.GOAL.value, GameElements.BOX.value, GameElements.BOX_ON_GOAL.value, GameElements.PLAYER.value, GameElements.PLAYER_ON_GOAL.value]:
+                        if interior[new_x][new_y] == GameElements.WALL.value:
                             queue.append((new_x, new_y))
-                            level[new_x][new_y] = ';' # mark as visited
+                            board[new_x][new_y] = ';' # mark as visited
+                            
+        for x in range(height):
+            for y in range(width):
+                if board[x][y] == GameElements.BEDROCK.value:
+                    interior[x][y] = GameElements.BEDROCK.value
         return interior
 
+    # POST: Draws the current Player and Box positions on the board
+    def redraw_board(self, player_position=None, box_positions=None, board=None):
+        if board is None:
+            board = self.board
+        if player_position is None:
+            player_position = self.player_position
+        if box_positions is None:
+            box_positions = self.box_positions
+            
+        for goal_position in self.goal_positions:
+            board[goal_position[0]][goal_position[1]] = GameElements.GOAL.value
+    
+        board[player_position[0]][player_position[1]] = GameElements.PLAYER_ON_GOAL.value if player_position in self.goal_positions else GameElements.PLAYER.value
+        
+        for box_position in box_positions:
+            board[box_position[0]][box_position[1]] = GameElements.BOX_ON_GOAL.value if box_position in self.goal_positions else GameElements.BOX.value
+        
     def update_positions(self):
         next_player_position = self.adjacent_position(self.player_position)
-        next_player_obstacle = self.board[next_player_position[0]][next_player_position[1]] # TODO: find clearner expression for this
-        if next_player_obstacle == self.wall:
-            return
+        next_player_obstacle = self.board[next_player_position[0]][next_player_position[1]]
         
-        elif next_player_obstacle in [self.box, self.box_on_goal]:
+        # Player runs into a wall
+        if next_player_obstacle == GameElements.WALL.value:
+            return
+        # Player runs into a box
+        elif next_player_obstacle in [GameElements.BOX.value, GameElements.BOX_ON_GOAL.value]:
             next_box_position = self.adjacent_position(next_player_position)
             next_box_obstacle = self.board[next_box_position[0]][next_box_position[1]]
 
-            if next_box_obstacle == self.floor:
-                self.board[next_box_position[0]][next_box_position[1]] = self.box
-                self.board[next_player_position[0]][next_player_position[1]] = self.player_on_goal if self.board[next_player_position[0]][next_player_position[1]] == self.box_on_goal else self.player
-                if self.board[next_player_position[0]][next_player_position[1]] == self.player_on_goal:
-                    self.number_of_boxes_on_goal -= 1
-                self.board[self.player_position[0]][self.player_position[1]] = self.goal if self.board[self.player_position[0]][self.player_position[1]] == self.player_on_goal else self.floor
+            # Box can be pushed if there is floor or goal behind it
+            if next_box_obstacle in [GameElements.FLOOR.value, GameElements.GOAL.value]:
+                box_index = self.box_positions.index(next_player_position)
+                self.box_positions[box_index] = next_box_position
+                self.board[self.player_position[0]][self.player_position[1]] = GameElements.FLOOR.value
                 self.player_position = next_player_position
-                self.move_changed_smth = True
-
-            elif next_box_obstacle == self.goal:
-                self.board[next_box_position[0]][next_box_position[1]] = self.box_on_goal
-                self.board[next_player_position[0]][next_player_position[1]] = self.player_on_goal if self.board[next_player_position[0]][next_player_position[1]] == self.box_on_goal else self.player
-                if self.board[next_player_position[0]][next_player_position[1]] == self.player_on_goal:
-                    self.number_of_boxes_on_goal -= 1
-                self.board[self.player_position[0]][self.player_position[1]] = self.goal if self.board[self.player_position[0]][self.player_position[1]] == self.player_on_goal else self.floor 
-                self.player_position = next_player_position
-                self.number_of_boxes_on_goal += 1
-                self.move_changed_smth = True
+                
+            # There is a wall or another box behind the box, so it cannot be pushed    
             else:
                 return
 
-        elif next_player_obstacle == self.floor:
-            self.board[self.player_position[0]][self.player_position[1]] = self.goal if self.board[self.player_position[0]][self.player_position[1]] == self.player_on_goal else self.floor
-            self.board[next_player_position[0]][next_player_position[1]] = self.player
+        elif next_player_obstacle in [GameElements.FLOOR.value, GameElements.GOAL.value]:
+            self.board[self.player_position[0]][self.player_position[1]] = GameElements.FLOOR.value 
             self.player_position = next_player_position
-            self.move_changed_smth = True
 
-        elif next_player_obstacle == self.goal:
-            self.board[self.player_position[0]][self.player_position[1]] = self.goal if self.board[self.player_position[0]][self.player_position[1]] == self.player_on_goal else self.floor 
-            self.board[next_player_position[0]][next_player_position[1]] = self.player_on_goal
-            self.player_position = next_player_position
-            self.move_changed_smth = True
         else:
             print("ERROR")
             assert(0)
+        self.redraw_board()
 
+    # POST: Returns the position of the player after a move
     def adjacent_position(self, position, move=None):
         if move is None:
             move = self.current_move
-        new_position = position[:]
-        if move == "w":
-            new_position[0] -= 1
-        elif move == "a":
-            new_position[1] -= 1
-        elif move == "s":
-            new_position[0] += 1
-        elif move == "d":
-            new_position[1] += 1
+
+        move_dict = {"w": (-1, 0), "a": (0, -1), "s": (1, 0), "d": (0, 1)}
+
+        delta_x, delta_y = move_dict.get(move, (0, 0))
+
+        new_position = [position[0] + delta_x, position[1] + delta_y]
+        
         return new_position
 
+    # POST: Updates the game status:
+    # Game is won if all boxes are on goals and the number of turns is less than the maximum number of turns
+    # otherwise game is lost if the number of turns is greater than the maximum number of turns
     def update_game_status(self):
-        if(self.move_changed_smth):
-            if(self.number_of_boxes_on_goal == self.total_number_of_boxes):
+        if(sorted(self.box_positions) == sorted(self.goal_positions) and self.turn <= self.max_number_of_turns):
                 self.end=True
-                if self.disable_prints == False:
+                if not self.disable_prints:
                     print("WIN!")
-        self.move_changed_smth = False
-        if self.turn > self.max_number_of_turns:
+        elif self.turn > self.max_number_of_turns:
             self.end = True
-            if self.disable_prints == False:
+            if not self.disable_prints:
                 print("LOSE!")
 
-    def step(self, action, gamma=1):
+    # POST: Returns the features of the state if action were taken, without actually changing the state of the game
+    # is used for the RL agent to compute the value of the next state
+    def step(self, action, gamma):
+        
         board = deepcopy(self.board)
         player_position = deepcopy(self.player_position)
-        number_of_boxes_on_goal = self.number_of_boxes_on_goal
-
-        next_player_position = self.adjacent_position(player_position, action)
-        next_player_obstacle = board[next_player_position[0]][next_player_position[1]] # TODO: find clearner expression for this
+        box_positions = deepcopy(self.box_positions)
         
-        if next_player_obstacle in [self.box, self.box_on_goal]:
-            next_box_position = self.adjacent_position(next_player_position, action)
+        next_player_position = self.adjacent_position(player_position, move=action)
+        next_player_obstacle = board[next_player_position[0]][next_player_position[1]]
+        
+        # Player runs into a wall
+        if next_player_obstacle == GameElements.WALL.value:
+            return
+        # Player runs into a box
+        elif next_player_obstacle in [GameElements.BOX.value, GameElements.BOX_ON_GOAL.value]:
+            next_box_position = self.adjacent_position(next_player_position)
             next_box_obstacle = board[next_box_position[0]][next_box_position[1]]
 
-            if next_box_obstacle == self.floor:
-                board[next_box_position[0]][next_box_position[1]] = self.box
-                board[next_player_position[0]][next_player_position[1]] = self.player_on_goal if board[next_player_position[0]][next_player_position[1]] == self.box_on_goal else self.player
-                if board[next_player_position[0]][next_player_position[1]] == self.player_on_goal:
-                    number_of_boxes_on_goal -= 1
-                board[self.player_position[0]][player_position[1]] = self.goal if board[player_position[0]][player_position[1]] == self.player_on_goal else self.floor
+            # Box can be pushed if there is floor or goal behind it
+            if next_box_obstacle in [GameElements.FLOOR.value, GameElements.GOAL.value]:
+                box_index = box_positions.index(next_player_position)
+                box_positions[box_index] = next_box_position
+                board[player_position[0]][player_position[1]] = GameElements.FLOOR.value
                 player_position = next_player_position
+                
+            # There is a wall or another box behind the box, so it cannot be pushed    
+            else:
+                return
 
-            elif next_box_obstacle == self.goal:
-                board[next_box_position[0]][next_box_position[1]] = self.box_on_goal
-                board[next_player_position[0]][next_player_position[1]] = self.player_on_goal if board[next_player_position[0]][next_player_position[1]] == self.box_on_goal else self.player
-                if board[next_player_position[0]][next_player_position[1]] == self.player_on_goal:
-                    number_of_boxes_on_goal -= 1
-                board[player_position[0]][player_position[1]] = self.goal if board[player_position[0]][player_position[1]] == self.player_on_goal else self.floor 
-                player_position = next_player_position
-                number_of_boxes_on_goal += 1
-
-        elif next_player_obstacle == self.floor:
-            board[player_position[0]][player_position[1]] = self.goal if board[player_position[0]][player_position[1]] == self.player_on_goal else self.floor
-            board[next_player_position[0]][next_player_position[1]] = self.player
+        elif next_player_obstacle in [GameElements.FLOOR.value, GameElements.GOAL.value]:
+            board[player_position[0]][player_position[1]] = GameElements.FLOOR.value 
             player_position = next_player_position
 
-        elif next_player_obstacle == self.goal:
-            board[player_position[0]][player_position[1]] = self.goal if board[player_position[0]][player_position[1]] == self.player_on_goal else self.floor 
-            board[next_player_position[0]][next_player_position[1]] = self.player_on_goal
-            player_position = next_player_position
+        else:
+            print("ERROR")
+            assert(0)
         
-        reward = 0
-        end = 0
-        if number_of_boxes_on_goal == self.total_number_of_boxes:
-            reward = 10
-            end = 1
-
-        return [self.targets(board=board), self.distance(board=board), self.gamma1(gamma=gamma), self.gamma2(gamma=gamma, board=board), self.connectivity(board=board)], reward, end
+        self.redraw_board(board=board, player_position=player_position, box_positions=box_positions)
+        targets = self.targets(box_positions=box_positions)
+        self.print_board(board)
+        return [targets, self.distance(box_positions=box_positions, board=board), self.gamma1(gamma=gamma), self.gamma2(gamma=gamma, box_positions=box_positions), self.connectivity(board=board)], 10 if targets == 1 else 0, True if targets == 1 else False
    
     """
     compute features needed for the state feed into the RL agent
     """
-    def targets(self, board=None):
-        number_of_boxes_on_goal = len(self.find_elements(self.box_on_goal, board)) if board is not None else self.number_of_boxes_on_goal
-        return number_of_boxes_on_goal / self.total_number_of_boxes
+    def targets(self, box_positions):
+        return len(set(map(tuple, box_positions)).intersection(set(map(tuple,self.goal_positions))))/len(self.box_positions)
     
     def gamma1(self, gamma):
-        return pow(gamma, self.total_number_of_boxes)
+        return pow(gamma, len(self.goal_positions))
 
-    def gamma2(self, gamma, board=None):
-        number_of_boxes_on_goal = len(self.find_elements(self.box_on_goal, board)) if board is not None else self.number_of_boxes_on_goal
-        return pow(gamma, self.total_number_of_boxes - number_of_boxes_on_goal)
+    def gamma2(self, gamma, box_positions=None):
+        if box_positions is None:
+            box_positions = self.box_positions
+        number_of_boxes_on_goal = self.targets(box_positions=box_positions) * len(self.goal_positions)
+        return pow(gamma, len(self.box_positions) - number_of_boxes_on_goal)
    
     # TODO: get something more sophisticated here: taking into account the player movement when he goes from box to box
     # current idea: model problem as assignment problem (the assumption that the graph is bipartite fully connected might be violated for example:
@@ -319,35 +310,39 @@ class Game:
     #   ####### )
     # Nevertheless we use BFS to compute the pairwise distances (ignoring other boxes and the player, only worrying about the walls themselves) and then we use the Hungarian algorithm to solve the assignment problem
 
-    def distance(self, board=None):
+    def distance(self, box_positions, board):
         if board is None:
             board = self.board
-        cost_matrix = self.get_pairwise_distances(board)
+        if box_positions is None:
+            box_positions = self.box_positions
+        cost_matrix = self.get_pairwise_distances(box_positions=box_positions, board=board)
 
         # using the Hungarian algorithm to solve the assignment problem
         row_ind, col_ind = linear_sum_assignment(cost_matrix)
         # Calculate the minimum cost based on the assignment
         min_cost = sum([cost_matrix[row_ind[i]][col_ind[i]] for i in range(len(row_ind))])
         # need to add a component that gives distance between player and next box
-        player_distance  = self.bfs(self.player_position, self.find_elements(self.box, board=board), board=board)
+        
+        player_distance  = self.bfs(self.player_position, self.find_elements(GameElements.BOX.value, board=board), board=board)
         if len(player_distance) == 0:
             return min_cost
         return min_cost + min(player_distance.values())
 
-    def get_pairwise_distances(self, board):
-        box_positions = sorted(self.find_elements(self.box, board=board) + self.find_elements(self.box_on_goal, board=board))
-        goal_positions = sorted(self.find_elements(self.goal, board=board) + self.find_elements(self.player_on_goal, board=board) + self.find_elements(self.box_on_goal, board=board))
-        assert(len(box_positions) == len(goal_positions))
+    # POST: Returns a matrix that contains the pairwise distances between the boxes and goals:
+    # distance[i][j] is the distance between the i-th box and the j-th goal
+    def get_pairwise_distances(self, box_positions, board):
+        assert(len(box_positions) == len(self.goal_positions))
         size = len(box_positions)
         
         distances = [[0 for _ in range(size)] for _ in range(size)]
         for i in range(size):
-            box_distances = self.bfs(box_positions[i], goal_positions, board=board)
+            box_distances = self.bfs(box_positions[i], self.goal_positions, board=board)
             for j in range(size):
-                distances[i][j] = box_distances[(goal_positions[j][0], goal_positions[j][1])]
+                distances[i][j] = box_distances[(self.goal_positions[j][0], self.goal_positions[j][1])]
         
         return distances
     
+    # POST: Returns a dictionary that contains the distances between the start and the end positions, where the keys are the end positions and the values the distances
     def bfs(self, start, end, board):
         distance = {}
         reached_goals = set()
@@ -369,17 +364,17 @@ class Game:
                 for dx, dy in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
                     new_x, new_y = x + dx, y + dy
                     if 0 <= new_x < height and 0 <= new_y < width and not visited[new_x][new_y]:
-                        if board[new_x][new_y] in [self.floor, self.goal, self.box, self.box_on_goal, self.player, self.player_on_goal]:
+                        if board[new_x][new_y] in [GameElements.FLOOR.value, GameElements.GOAL.value, GameElements.BOX.value, GameElements.BOX_ON_GOAL.value, GameElements.PLAYER.value, GameElements.PLAYER_ON_GOAL.value]:
                             queue.append((new_x, new_y))
                             visited[new_x][new_y] = True
             step += 1
         return distance 
-
-    def connectivity(self, board=None):
-        if board is None:
-            board = self.board
+    
+    # POST: Returns the number of connected components in the board
+    # Here a connected component is a component in which the player can move without pushing a box
+    def connectivity(self, board):
         connected_components = 0
-        floor = self.find_elements(self.floor, board=board)
+        floor = self.find_elements(GameElements.FLOOR.value, board=board)
         height = len(self.board)
         width = max(len(row) for row in board)
         visited = [[0 for _ in range(width)] for _ in range(height)]
@@ -392,22 +387,23 @@ class Game:
                 visited[x][y] = 1
                 for dx, dy in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
                     new_x, new_y = x + dx, y + dy
-                    if not visited[new_x][new_y] and board[new_x][new_y] in [self.floor, self.goal, self.player, self.player_on_goal]:
+                    if not visited[new_x][new_y] and board[new_x][new_y] in [GameElements.FLOOR.value, GameElements.GOAL.value, GameElements.PLAYER.value, GameElements.PLAYER_ON_GOAL.value]:
                         queue.append((new_x, new_y))
 
         return connected_components # we want this to be normalized maybe this will do it, seems unlikely that board has more than 10 connected components?
         
     # POST: returns the state of the game
-    def state(self, gamma=1):
-        return [self.targets(), self.distance(), self.gamma1(gamma), self.gamma2(gamma), self.connectivity()], self.reward, self.end
+    def state(self, gamma):
+        return [self.targets(box_positions=self.box_positions), self.distance(box_positions=self.box_positions, board=self.board), self.gamma1(gamma), self.gamma2(gamma), self.connectivity(board=self.board)], self.reward, self.end
 
     
 if __name__ == "__main__":
-    Wearhouse = Game(2, disable_prints=False)
-    #Wearhouse.play()
+    Wearhouse = Game(1, disable_prints=False)
+    
+    Wearhouse.print_board() 
+    Wearhouse.play(["s", "a", "w"], gamma=1)
+    assert 0   
+    print("---")
+    Wearhouse.step('w')
+    print("---")
     Wearhouse.print_board()
-    box = Wearhouse.find_element(Wearhouse.box)
-    # print(Wearhouse.bfs(box, Wearhouse.find_elements(Wearhouse.goal) + Wearhouse.find_elements(Wearhouse.player_on_goal) + Wearhouse.find_elements(Wearhouse.box_on_goal)))
-    Wearhouse.get_pairwise_distances()
-    Wearhouse.distance()
-    print(Wearhouse.connectivity())
