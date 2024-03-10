@@ -14,21 +14,25 @@ log_move_rand = [0,0,0,0]
 # the current solution is to just use the dimension of the largest level and pad the smaller levels with special values (don't think it is a good idea to use walls to pad)
 # probably the location of the padding makes a very big difference (i.e. neurons on the top left have seen much more examples than neurons on the bottom right)
 # in the current solution in most of the training each neuron only sees bedrock. should fix this
+
 class ValueNetwork(nn.Module):
     def __init__(self, input_size=5, output_size=1):
         super(ValueNetwork, self).__init__()
         self.linear1 = nn.Linear(input_size, input_size)
+        self.relu1 = nn.ReLU()
         self.linear2 = nn.Linear(input_size, input_size)
+        self.relu2 = nn.ReLU()
         self.linear3 = nn.Linear(input_size, output_size)
 
     def forward(self, state):
-        state = self.linear1(state)
-        state = self.linear2(state)
+        state = self.relu1(self.linear1(state))
+        state = self.relu2(self.linear2(state))
         state = self.linear3(state)
         return state
 
+
 class Agent():
-    def __init__(self, input_size=5, learning_rate=0.01, alpha=0.98, gamma=0.99, epsilon=0.4, alpha_discount=0.98):
+    def __init__(self, input_size=5, learning_rate=0.01, alpha=0.98, gamma=0.99, epsilon=0.2, alpha_discount=0.98):
         self.alpha = alpha
         self.alpha_discount = alpha_discount
         self.input_size = input_size
@@ -80,8 +84,8 @@ class Agent():
         hist=[]
         moves = []
         for episode in range(num_episodes):
-            random.seed(43)
-            env = ReverseGame(Game(level_id=0))
+            id = random.randint(1,155)
+            env = ReverseGame(Game(level_id=id))
             if episode % 100 == 0:
               moves.append(env.player_position)
             _ , _ , done = env.state(self.gamma)
@@ -101,7 +105,8 @@ class Agent():
         hist = []
         moves = []
         for episode in tqdm(range(num_episodes)):
-            env = ReverseGame(Game(level_id=0))
+            id = random.randint(1,155)
+            env = ReverseGame(Game(level_id=id))
             state, _ , done = env.state(self.gamma)
             if episode % 100 == 0:
               moves.append(env.player_position)
@@ -139,7 +144,7 @@ if __name__ == "__main__":
 
     # Define the input size
     learning_rate = 0.01
-    gamma = 0.8  # Discount factor
+    gamma = 0.7  # Discount factor
 
     # Initialize the agent
     agent = Agent(learning_rate=learning_rate, gamma=gamma)
@@ -150,7 +155,7 @@ if __name__ == "__main__":
     #wins1, tries1 = agent.train(num_episodes=100)  # Train for 1000 episodes
     wins2, tries2, moves2 = agent2.train(num_episodes=500)  # Train for 1000 episodes
     print(wins2, "|", wins2/tries2)
-    wins3, tries3, moves3 = agent3.random_baseline(num_episodes=500)  # Train for 1000 episodes
+    wins3, tries3, moves3 = agent3.random_baseline(num_episodes=100)  # Train for 1000 episodes
     print(wins3, "|",wins3/tries3)
     
     # File path to store the JSON data
@@ -161,7 +166,7 @@ if __name__ == "__main__":
 
     # Write the JSON data to the file
     with open(file_path, "w") as file:
-        file.write(json_data)
+        file.write(json_data) 
     
     print([c / sum(log_move_gred) for c in log_move_gred])
     print([c / sum(log_move_rand) for c in log_move_rand])

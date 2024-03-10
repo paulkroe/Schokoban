@@ -3,7 +3,7 @@ from collections import deque
 import random
 from scipy.optimize import linear_sum_assignment
 
-class Game:   
+class Game:
 
     def __init__(self, level_id=None, disable_prints=True):
 
@@ -328,8 +328,8 @@ class Game:
         row_ind, col_ind = linear_sum_assignment(cost_matrix)
         # Calculate the minimum cost based on the assignment
         min_cost = sum([cost_matrix[row_ind[i]][col_ind[i]] for i in range(len(row_ind))])
-        # need to add a component that gives distance between player and next next box
-        player_distance  = self.bfs(self.player_position, self.find_elements(self.box_on_goal, board=board), board=board)
+        # need to add a component that gives distance between player and next box
+        player_distance  = self.bfs(self.player_position, self.find_elements(self.box, board=board), board=board)
         if len(player_distance) == 0:
             return min_cost
         return min_cost + min(player_distance.values())

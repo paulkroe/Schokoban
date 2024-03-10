@@ -13,6 +13,9 @@ class ReverseGame(Game):
     def reverse_level(self, level):
 
         player_position = self.find_element(self.player, level)
+        if player_position is None:
+            player_position = self.find_element(self.player_on_goal, level)
+
         all_box_positions = self.find_elements(self.box, level) + self.find_elements(self.box_on_goal, level)
         level = deepcopy(level)
         level[player_position[0]][player_position[1]] = self.goal if level[player_position[0]][player_position[1]] == self.player_on_goal else self.floor
@@ -132,11 +135,11 @@ class ReverseGame(Game):
             return 0
         else:
             distance = self.bfs(player_position, boxes_on_goal, board)
-        return sum(distance.values())
+        return min(distance.values())/sum(distance.values()) # need to normalize this
         
 if __name__ == "__main__":
     random.seed(3)
     game = Game(level_id=1)
     reverse_game = ReverseGame(game, disable_prints=False)
     reverse_game.print_board()
-    reverse_game.distance()
+    reverse_game.print_board(Game.load_microban_level(155))
