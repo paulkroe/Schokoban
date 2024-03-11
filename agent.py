@@ -4,12 +4,12 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
-from game import Game
-from reverse_game import ReverseGame
+from game import Game, ReverseGame
 from tqdm import tqdm
 import random
-log_move_gred = [0,0,0,0]
-log_move_rand = [0,0,0,0]
+import matplotlib.pyplot as plt
+log_move_gred = [0,0,0,0,0]
+log_move_rand = [0,0,0,0,0]
 # TODO: the problem here is that the levels differ in size, so the input size will differ.
 # the current solution is to just use the dimension of the largest level and pad the smaller levels with special values (don't think it is a good idea to use walls to pad)
 # probably the location of the padding makes a very big difference (i.e. neurons on the top left have seen much more examples than neurons on the bottom right)
@@ -18,21 +18,25 @@ log_move_rand = [0,0,0,0]
 class ValueNetwork(nn.Module):
     def __init__(self, input_size=5, output_size=1):
         super(ValueNetwork, self).__init__()
-        self.linear1 = nn.Linear(input_size, input_size)
-        self.relu1 = nn.ReLU()
-        self.linear2 = nn.Linear(input_size, input_size)
-        self.relu2 = nn.ReLU()
-        self.linear3 = nn.Linear(input_size, output_size)
+        self.linear1 = nn.Linear(input_size, 2048)
+        self.linear2 = nn.Linear(2048, 2048)
+        self.linear3 = nn.Linear(2048, 1024)
+        self.linear4 = nn.Linear(1024, 1024)
+        self.linear5 = nn.Linear(1024, 512)
+        self.linear6 = nn.Linear(512, output_size)
 
     def forward(self, state):
-        state = self.relu1(self.linear1(state))
-        state = self.relu2(self.linear2(state))
+        state = self.linear1(state)
+        state = self.linear2(state)
         state = self.linear3(state)
+        state = self.linear4(state)
+        state = self.linear5(state)
+        state = self.linear6(state)
         return state
 
 
 class Agent():
-    def __init__(self, input_size=5, learning_rate=0.01, alpha=0.98, gamma=0.99, epsilon=0.2, alpha_discount=0.98):
+    def __init__(self, input_size=5, learning_rate=0.01, alpha=0.98, gamma=0.99, epsilon=0.1, alpha_discount=0.98):
         self.alpha = alpha
         self.alpha_discount = alpha_discount
         self.input_size = input_size
@@ -51,12 +55,16 @@ class Agent():
         else:
             # TODO: this will fail as soon as we use batches
             options = {}
-            for action in ["w", "a", "s", "d"]:
+            legal_moves = env.legal_moves()
+            if len(legal_moves) == 0:
+              log_move_gred[4] = log_move_gred[4] + 1
+              return None
+            for action in legal_moves:
                 next_state, reward, done = env.step(action, self.gamma)
                 next_state_tensor = torch.tensor(next_state, dtype=torch.float32).unsqueeze(0)
                 next_value = self.model(next_state_tensor)
                 options[action] = next_value
-                move = max(options, key=options.get)  # Exploit: action with the highest value
+            move = max(options, key=options.get)  # Exploit: action with the highest value
         if move == "w":
           log_move_gred[0] = log_move_gred[0]+1
         if move == "a":
@@ -67,7 +75,11 @@ class Agent():
           log_move_gred[3] = log_move_gred[3]+1
         return move
 
-    def random_policy(self):
+    def random_policy(self, env):
+        legal_moves = env.legal_moves()
+        if len(legal_moves) == 0:
+          log_move_rand[4] = log_move_rand[4]+1
+          return None
         move = np.random.choice(["w", "a", "s", "d"])
         if move == "w":
           log_move_rand[0] = log_move_rand[0]+1
@@ -77,74 +89,76 @@ class Agent():
           log_move_rand[2] = log_move_rand[2]+1
         if move == "d":
           log_move_rand[3] = log_move_rand[3]+1
-        return move       
+        return move
 
-    def random_baseline(self, num_episodes):
+    def random_baseline(self, num_episodes, start=1, end=10):
         wins = 0
         hist=[]
         moves = []
         for episode in range(num_episodes):
-            id = random.randint(1,155)
+            id = random.randint(start,end)
             env = ReverseGame(Game(level_id=id))
             if episode % 100 == 0:
               moves.append(env.player_position)
             _ , _ , done = env.state(self.gamma)
             # TODO: convert chars to numbers, then add embedding layer to network
             while not done:
-                action = self.random_policy()  # Define or choose your action selection strategy
+                action = self.random_policy(env)  # Define or choose your action selection strategy
+                if action is None: # agent is stuck and can't move
+                  done = True
+                  continue
                 if episode % 100 == 0:
                   moves.append(action)
                 next_state, reward, done = env.play(action, gamma=self.gamma)  # Take a step in the environment
                 wins += reward/10
             hist = hist + [wins/(episode+1)]
+        plt.plot(hist, label="rand")
         return wins, num_episodes, moves
 
-    def train(self, num_episodes):
+    def train(self, num_episodes, start=0, end=155):
         wins = 0
-        losses = []
         hist = []
         moves = []
         for episode in tqdm(range(num_episodes)):
-            id = random.randint(1,155)
+            id = random.randint(start,end)
             env = ReverseGame(Game(level_id=id))
             state, _ , done = env.state(self.gamma)
             if episode % 100 == 0:
               moves.append(env.player_position)
             while not done:
-                # print(state)
-                state_tensor = torch.tensor(state, dtype=torch.float32).unsqueeze(0)  # Convert state to tensor and add batch dimension
-                value = self.model(state_tensor)  # Estimate the value of the current state
+                state_tensor = torch.tensor(state, dtype=torch.float32).unsqueeze(0)
+                value = self.model(state_tensor)
 
-                action = self.epsilon_greedy_policy(state, env)  # Define or choose your action selection strategy
+                action = self.epsilon_greedy_policy(state, env)
+                if action is None: # agent is stuck and can't move
+                  done = True
+                  continue
                 if episode % 100 == 0:
                   moves.append(action)
-                next_state, reward, done = env.play(action, gamma=self.gamma)  # Take a step in the environment
+                next_state, reward, done = env.play(action, gamma=self.gamma)
                 wins += reward/10
                 next_state_tensor = torch.tensor(next_state, dtype=torch.float32).unsqueeze(0)
-                next_value = self.model(next_state_tensor)  # Estimate value of next state
+                next_value = self.model(next_state_tensor)
                 # TD(0) target
-                target = value + self.alpha*(reward + self.gamma * next_value * (1 - int(done)) - value)  # Adjust target for terminal states
+                target = value + self.alpha*(reward + self.gamma * next_value * (1 - int(done)) - value)
 
                 # TD(0) error
                 loss = self.loss_fn(value, target.detach())
-                losses.append(loss)
-
-                # Backpropagation
                 self.optimizer.zero_grad()
                 loss.backward()
                 self.optimizer.step()
-                state = next_state  # Move to the next state
+                state = next_state
                 self.alpha = self.alpha * self.alpha_discount
             hist = hist + [wins/(episode+1)]
-        print(len([loss.detach().numpy() for loss in losses if loss != 0]))
+        plt.plot(hist, label="greedy")
 
         return wins, num_episodes, moves
-        
+
 if __name__ == "__main__":
 
     # Define the input size
     learning_rate = 0.01
-    gamma = 0.7  # Discount factor
+    gamma = 0.8  # Discount factor
 
     # Initialize the agent
     agent = Agent(learning_rate=learning_rate, gamma=gamma)
@@ -153,11 +167,12 @@ if __name__ == "__main__":
 
     # Train the agent
     #wins1, tries1 = agent.train(num_episodes=100)  # Train for 1000 episodes
-    wins2, tries2, moves2 = agent2.train(num_episodes=500)  # Train for 1000 episodes
+    wins2, tries2, moves2 = agent2.train(num_episodes=500, start=154, end=154)  # Train for 1000 episodes
     print(wins2, "|", wins2/tries2)
-    wins3, tries3, moves3 = agent3.random_baseline(num_episodes=100)  # Train for 1000 episodes
+    wins3, tries3, moves3 = agent3.random_baseline(num_episodes=100, start=154, end=154)  # Train for 1000 episodes
     print(wins3, "|",wins3/tries3)
-    
+    plt.legend()
+    plt.show()
     # File path to store the JSON data
     file_path = "run.json"
 
@@ -166,7 +181,7 @@ if __name__ == "__main__":
 
     # Write the JSON data to the file
     with open(file_path, "w") as file:
-        file.write(json_data) 
-    
+        file.write(json_data)
+
     print([c / sum(log_move_gred) for c in log_move_gred])
     print([c / sum(log_move_rand) for c in log_move_rand])

@@ -282,8 +282,7 @@ class Game:
         
         self.redraw_board(board=board, player_position=player_position, box_positions=box_positions)
         targets = self.targets(box_positions=box_positions)
-        
-        return [targets, self.distance(player_position=player_position, box_positions=box_positions, board=board), self.gamma1(gamma=gamma), self.gamma2(gamma=gamma, box_positions=box_positions), self.connectivity(board=board)], 10 if targets == 1 else 0, True if targets == 1 else False
+        return [targets, self.distance(player_position=player_position, box_positions=box_positions, board=board), self.gamma1(gamma=gamma), self.gamma2(gamma=gamma, box_positions=box_positions), self.connectivity(board=board)], 1 if targets == 1 else 0, True if targets == 1 else False
    
     """
     compute features needed for the state feed into the RL agent
@@ -456,7 +455,7 @@ class ReverseGame(Game):
                 if self.disable_prints == False:
                     print("WIN!")
                 self.end = True
-                self.reward = 10
+                self.reward = 1
         elif self.turn > self.max_number_of_turns:
             if self.disable_prints == False:
                 print("LOSE!")
@@ -530,16 +529,46 @@ class ReverseGame(Game):
         self.redraw_board(board=board, player_position=player_position, box_positions=box_positions)
         targets = self.targets(box_positions=box_positions)
         self.print_board(board)
-        return [targets, self.distance(player_position=player_position, box_positions=box_positions, board=board), self.gamma1(gamma=gamma), self.gamma2(gamma=gamma, box_positions=box_positions), self.connectivity(board=board)], 10 if targets == 0 else 0, True if targets == 0 else False
+        return [targets, self.distance(player_position=player_position, box_positions=box_positions, board=board), self.gamma1(gamma=gamma), self.gamma2(gamma=gamma, box_positions=box_positions), self.connectivity(board=board)], 1 if targets == 0 else 0, True if targets == 0  else False
      
+    # POST: Returns the positions form which boxes can be pulled, returns empty list if no box can be pulled
+    def box_movable(self, box_positions, board):
+        height = len(board)
+        width = len(board[0])
+        pullabel_positions = []
+        allowed_positions = [GameElements.FLOOR.value, GameElements.GOAL.value, GameElements.PLAYER.value, GameElements.PLAYER_ON_GOAL.value]
+        for box_position in box_positions:
+            if box_position[0] - 2 >= 0:
+                if board[box_position[0] - 1][box_position[1]] in allowed_positions and board[box_position[0] - 2][box_position[1]] in allowed_positions:
+                    pullabel_positions.append([box_position[0]-1, box_position[1]])
+            if box_position[0] + 2 < height:
+                if board[box_position[0] + 1][box_position[1]] in allowed_positions and board[box_position[0] + 2][box_position[1]] in allowed_positions:
+                    pullabel_positions.append([box_position[0]+1, box_position[1]])
+            if box_position[1] - 2 >= 0:
+                if board[box_position[0]][box_position[1] - 1] in allowed_positions and board[box_position[0]][box_position[1] - 2] in allowed_positions:
+                    pullabel_positions.append([box_position[0], box_position[1]-1])
+            if box_position[1] + 2 < width:
+                if board[box_position[0]][box_position[1] + 1] in allowed_positions and board[box_position[0]][box_position[1] + 2] in allowed_positions:
+                    pullabel_positions.append([box_position[0], box_position[1]+1])
+
+        return pullabel_positions
+            
     def distance(self,player_position, box_positions, board):
         # return distance to next box that is not on goal
         if self.targets(box_positions=box_positions) == 0:
             return 0
         else:
+            # find next box that can be moved:
             boxes_on_goal = self.find_elements(GameElements.BOX_ON_GOAL.value, board=board)
-            distance = self.bfs(start=player_position, end=boxes_on_goal, board=board)
-        return min(distance.values())/sum(distance.values()) # need to normalize this
+            movable_box = self.box_movable(boxes_on_goal, board)
+            if len(movable_box) == 0:
+                return -1 # don't know if this is a good idea
+            # TODO: it might happen that the player is not able to reach the box, in this case we should return -1
+            distance = self.bfs(start=player_position, end=movable_box, board=board)
+            if len(distance) == -1:
+                return -1
+            else :
+                return min(distance.values())
 
 
 
