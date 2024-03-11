@@ -388,7 +388,19 @@ class Game:
                         queue.append((new_x, new_y))
 
         return connected_components # we want this to be normalized maybe this will do it, seems unlikely that board has more than 10 connected components?
-        
+    def legal_moves(self):
+        legal_moves = {"w": True, "a": True, "s": True, "d": True}
+        for move in legal_moves:
+            next_player_position = self.adjacent_position(self.player_position, move=move)
+            next_player_obstacle = self.board[next_player_position[0]][next_player_position[1]]
+            if next_player_obstacle == GameElements.WALL.value:
+                legal_moves[move] = False
+            if next_player_obstacle in [GameElements.BOX.value, GameElements.BOX_ON_GOAL.value]:
+                next_box_position = self.adjacent_position(next_player_position, move=move)
+                next_box_obstacle = self.board[next_box_position[0]][next_box_position[1]]
+                if next_box_obstacle in [GameElements.WALL.value, GameElements.BOX.value, GameElements.BOX_ON_GOAL.value]:
+                    legal_moves[move] = False
+        return [key for key, value in legal_moves.items() if value is True]       
     # POST: returns the state of the game
     def state(self, gamma):
         return [self.targets(box_positions=self.box_positions), self.distance(player_position=self.player_position, box_positions=self.box_positions, board=self.board), self.gamma1(gamma), self.gamma2(gamma), self.connectivity(board=self.board)], self.reward, self.end
@@ -483,6 +495,16 @@ class ReverseGame(Game):
             self.player_position = next_player_position
             self.redraw_board()
 
+    def legal_moves(self):
+        legal_moves = {"w": False, "a": False, "s": False, "d": False}
+        for move in legal_moves:
+            next_player_position = self.adjacent_position(self.player_position, move=move)
+            next_player_obstacle = self.board[next_player_position[0]][next_player_position[1]]
+            if next_player_obstacle == GameElements.FLOOR.value:
+                legal_moves[move] = True
+        return [key for key, value in legal_moves.items() if value is True]
+
+    
     def step(self, action, gamma):
         board = deepcopy(self.board)
         player_position = deepcopy(self.player_position)
@@ -508,7 +530,7 @@ class ReverseGame(Game):
         self.redraw_board(board=board, player_position=player_position, box_positions=box_positions)
         targets = self.targets(box_positions=box_positions)
         self.print_board(board)
-        return [targets, self.distance(player_position=player_position, box_positions=box_positions, board=board), self.gamma1(gamma=gamma), self.gamma2(gamma=gamma, box_positions=box_positions), self.connectivity(board=board)], 10 if targets == 1 else 0, True if targets == 1 else False
+        return [targets, self.distance(player_position=player_position, box_positions=box_positions, board=board), self.gamma1(gamma=gamma), self.gamma2(gamma=gamma, box_positions=box_positions), self.connectivity(board=board)], 10 if targets == 0 else 0, True if targets == 0 else False
      
     def distance(self,player_position, box_positions, board):
         # return distance to next box that is not on goal

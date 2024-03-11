@@ -1,8 +1,6 @@
 import pygame
 import sys
-import re
-from game import Game
-from reverse_game import ReverseGame
+from game import Game, ReverseGame
 import json
 
 class Engine:
@@ -152,6 +150,11 @@ class Engine:
 
                 elif event.type == pygame.KEYDOWN:
                     self.handle_key_events(event)
+                    legal_moves = self.game.legal_moves()
+                    print(f"legal moves: {legal_moves}")
+                    for move in legal_moves:
+                            print(f"state '{move}':{self.game.step(move, gamma=0.9)}")
+                    print("---")
 
             # Clear the screen
             screen.fill((0, 0, 0))
