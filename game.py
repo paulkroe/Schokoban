@@ -29,7 +29,7 @@ class Game:
         
         # Status of the game:
         self.disable_prints = disable_prints
-        self.end = False
+        self.end = 0
         self.turn = 0
         self.max_number_of_turns = 100
         self.reward = 0
@@ -234,11 +234,12 @@ class Game:
     # otherwise game is lost if the number of turns is greater than the maximum number of turns
     def update_game_status(self):
         if(sorted(self.box_positions) == sorted(self.goal_positions) and self.turn <= self.max_number_of_turns):
-                self.end=True
+                self.end = 1
+                self.reward = 1
                 if not self.disable_prints:
                     print("WIN!")
         elif self.turn > self.max_number_of_turns:
-            self.end = True
+            self.end = 1
             if not self.disable_prints:
                 print("LOSE!")
 
@@ -282,7 +283,7 @@ class Game:
         
         self.redraw_board(board=board, player_position=player_position, box_positions=box_positions)
         targets = self.targets(box_positions=box_positions)
-        return [targets, self.distance(player_position=player_position, box_positions=box_positions, board=board), self.gamma1(gamma=gamma), self.gamma2(gamma=gamma, box_positions=box_positions), self.connectivity(board=board)], 1 if targets == 1 else 0, True if targets == 1 else False
+        return [targets, self.distance(player_position=player_position, box_positions=box_positions, board=board), self.gamma1(gamma=gamma), self.gamma2(gamma=gamma, box_positions=box_positions), self.connectivity(board=board)], 1 if targets == 1 else 0, 1 if targets == 1 or self.turn > self.max_number_of_turns else 0
    
     """
     compute features needed for the state feed into the RL agent
@@ -421,7 +422,7 @@ class ReverseGame(Game):
         
     # POST: Returns the board where all boxes are placed on goals and the player is set to a random floor position
     def reverse_board(self, board):
-
+        
         board = deepcopy(board)
         player_position = self.find_element([GameElements.PLAYER.value, GameElements.PLAYER_ON_GOAL.value], board=board)
         box_positions = self.find_elements([GameElements.BOX.value, GameElements.BOX_ON_GOAL.value], board=board)
@@ -435,7 +436,7 @@ class ReverseGame(Game):
         
         # place WALLs on goals so that the interior excludes the goals
         for goal in goal_positions:
-            board[goal[0]][goal[1]] = GameElements.GOAL.WALL.value
+            board[goal[0]][goal[1]] = GameElements.WALL.value
         
         interior = self.find_interior(board=board)
         self.player_position = random.choice(self.find_elements(GameElements.FLOOR.value, interior))
@@ -444,7 +445,6 @@ class ReverseGame(Game):
             board[goal[0]][goal[1]] = GameElements.GOAL.BOX_ON_GOAL.value
         
         board[self.player_position[0]][self.player_position[1]] = GameElements.PLAYER.value
-
         return board
 
     def load_microban_level(self, level_id):
@@ -454,8 +454,8 @@ class ReverseGame(Game):
         if(self.targets(box_positions=self.box_positions) == 0 and self.turn <= self.max_number_of_turns):
                 if self.disable_prints == False:
                     print("WIN!")
-                self.end = True
                 self.reward = 1
+                self.end = 1
         elif self.turn > self.max_number_of_turns:
             if self.disable_prints == False:
                 print("LOSE!")
@@ -527,9 +527,8 @@ class ReverseGame(Game):
                 
             player_position = next_player_position
         self.redraw_board(board=board, player_position=player_position, box_positions=box_positions)
-        targets = self.targets(box_positions=box_positions)
-        self.print_board(board)
-        return [targets, self.distance(player_position=player_position, box_positions=box_positions, board=board), self.gamma1(gamma=gamma), self.gamma2(gamma=gamma, box_positions=box_positions), self.connectivity(board=board)], 1 if targets == 0 else 0, True if targets == 0  else False
+        targets = self.targets(box_positions=box_positions) 
+        return [targets, self.distance(player_position=player_position, box_positions=box_positions, board=board), self.gamma1(gamma=gamma), self.gamma2(gamma=gamma, box_positions=box_positions), self.connectivity(board=board)], 1 if targets == 0 else 0, 1 if targets == 0 or self.turn > self.max_number_of_turns else 0
      
     # POST: Returns the positions form which boxes can be pulled, returns empty list if no box can be pulled
     def box_movable(self, box_positions, board):
@@ -569,8 +568,6 @@ class ReverseGame(Game):
                 return -1
             else :
                 return min(distance.values())
-
-
 
 if __name__ == "__main__":
     Wearhouse = Game(1, disable_prints=False)

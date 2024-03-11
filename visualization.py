@@ -1,6 +1,6 @@
 import pygame
 import sys
-from game import Game, ReverseGame
+from game import Game, ReverseGame, GameElements
 import json
 
 class Engine:
@@ -74,7 +74,6 @@ class Engine:
         # Initialize the screen outside the loop
         screen = self.initialize_pygame("Sokoban Game", (640, 480))
         tile_size = min(screen.get_width() // len(game.board[0]), screen.get_height() // len(game.board))
-        font = pygame.font.Font(None, 36)
 
         # Load images
         wall_image, goal_image = self.load_images(tile_size, 'images/wall.png', 'images/target.png')
@@ -84,9 +83,9 @@ class Engine:
                 game = Game(level_id=level_id)
             else:
                 game = ReverseGame(Game(level_id=level_id))
-            game.board[game.player_position[0]][game.player_position[1]] = game.floor
+            game.board[game.player_position[0]][game.player_position[1]] = GameElements.FLOOR.value
             game.player_position = moves.pop(0)
-            game.board[game.player_position[0]][game.player_position[1]] = game.floor
+            game.board[game.player_position[0]][game.player_position[1]] = GameElements.PLAYER.value
             print(f"player position: {game.player_position}")
             
             running = True
