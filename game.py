@@ -286,7 +286,7 @@ class Game:
         
         self.redraw_board(board=board, player_position=player_position, box_positions=box_positions)
         targets = self.targets(box_positions=box_positions)
-        return board, [targets, self.distance(player_position=player_position, box_positions=box_positions, board=board), self.gamma1(gamma=gamma), self.gamma2(gamma=gamma, box_positions=box_positions), self.connectivity(board=board)], 1 if targets == 1 and self.turn + 1 <= self.max_number_of_turns else 0, 1 if targets == 1 or self.turn + 1> self.max_number_of_turns else 0
+        return box_positions, [targets, self.distance(player_position=player_position, box_positions=box_positions, board=board), self.gamma1(gamma=gamma), self.gamma2(gamma=gamma, box_positions=box_positions), self.connectivity(board=board)], 1 if targets == 1 and self.turn + 1 <= self.max_number_of_turns else 0, 1 if targets == 1 or self.turn + 1> self.max_number_of_turns else 0
    
     """
     compute features needed for the state feed into the RL agent
@@ -406,7 +406,7 @@ class Game:
         return [key for key, value in legal_moves.items() if value is True]       
     # POST: returns the state of the game
     def state(self, gamma):
-        return self. board, [self.targets(box_positions=self.box_positions), self.distance(player_position=self.player_position, box_positions=self.box_positions, board=self.board), self.gamma1(gamma), self.gamma2(gamma), self.connectivity(board=self.board)], self.reward, self.end
+        return self.box_positions, [self.targets(box_positions=self.box_positions), self.distance(player_position=self.player_position, box_positions=self.box_positions, board=self.board), self.gamma1(gamma), self.gamma2(gamma), self.connectivity(board=self.board)], self.reward, self.end
 
 
 class ReverseGame(Game):
