@@ -286,7 +286,7 @@ class Game:
         
         self.redraw_board(board=board, player_position=player_position, box_positions=box_positions)
         targets = self.targets(box_positions=box_positions)
-        return [targets, self.distance(player_position=player_position, box_positions=box_positions, board=board), self.gamma1(gamma=gamma), self.gamma2(gamma=gamma, box_positions=box_positions), self.connectivity(board=board)], 1 if targets == 1 and self.turn + 1 <= self.max_number_of_turns else 0, 1 if targets == 1 or self.turn + 1> self.max_number_of_turns else 0
+        return board, [targets, self.distance(player_position=player_position, box_positions=box_positions, board=board), self.gamma1(gamma=gamma), self.gamma2(gamma=gamma, box_positions=box_positions), self.connectivity(board=board)], 1 if targets == 1 and self.turn + 1 <= self.max_number_of_turns else 0, 1 if targets == 1 or self.turn + 1> self.max_number_of_turns else 0
    
     """
     compute features needed for the state feed into the RL agent
@@ -406,7 +406,7 @@ class Game:
         return [key for key, value in legal_moves.items() if value is True]       
     # POST: returns the state of the game
     def state(self, gamma):
-        return [self.targets(box_positions=self.box_positions), self.distance(player_position=self.player_position, box_positions=self.box_positions, board=self.board), self.gamma1(gamma), self.gamma2(gamma), self.connectivity(board=self.board)], self.reward, self.end
+        return self. board, [self.targets(box_positions=self.box_positions), self.distance(player_position=self.player_position, box_positions=self.box_positions, board=self.board), self.gamma1(gamma), self.gamma2(gamma), self.connectivity(board=self.board)], self.reward, self.end
 
 
 class ReverseGame(Game):
@@ -555,7 +555,11 @@ class ReverseGame(Game):
                     pullabel_positions.append([box_position[0], box_position[1]+1])
 
         return pullabel_positions
-            
+    
+    def state(self, gamma):
+        return [self.targets(box_positions=self.box_positions), self.distance(player_position=self.player_position, box_positions=self.box_positions, board=self.board), self.gamma1(gamma), self.gamma2(gamma), self.connectivity(board=self.board)], self.reward, self.end
+
+     
     def distance(self,player_position, box_positions, board):
         """
         # Manhattan distance from player to all boxes that are not on goal
