@@ -20,7 +20,7 @@ class Game:
 
         # Initialize the game board as a list of lists (2D array)
         self.level_id = level_id
-        self.board = self.random_board() if self.level_id is None else Game.load_microban_level(self.level_id)
+        self.board = Game.load_microban_level(0) if self.level_id is None else Game.load_microban_level(self.level_id)
         
         # Initialize the game elements
         self.player_position = self.find_element([GameElements.PLAYER.value, GameElements.PLAYER_ON_GOAL.value])
@@ -571,11 +571,20 @@ class ReverseGame(Game):
             return 0
         else:
             # find next box that can be moved:
+            board = deepcopy(board)
             boxes_on_goal = self.find_elements(GameElements.BOX_ON_GOAL.value, board=board)
             movable_box = self.box_movable(boxes_on_goal, board)
-            if len(movable_box) == 0:
-                return -1 # don't know if this is a good idea
+            if len(movable_box) == 0: # boxes are stuck, return distance to next box TODO: do something more sophisticated here
+                boxes_on_goal = self.find_elements(GameElements.BOX_ON_GOAL.value, board=board)
+                for box_on_goal in boxes_on_goal: # agent may not choose paths through boxes that are placed on goals
+                    board[box_on_goal[0]][box_on_goal[1]] = GameElements.WALL.value
+                boxes = self.find_elements(GameElements.BOX.value, board=board)
+                distance = self.bfs(start=player_position, end=boxes, board=board)
+                return min(distance.values())
             # TODO: it might happen that the player is not able to reach the box, in this case we should return -1
+            boxes = self.find_elements(GameElements.BOX.value, board=board)
+            for box in boxes:
+                board[box[0]][box[1]]  = GameElements.WALL.value            
             distance = self.bfs(start=player_position, end=movable_box, board=board)
             if len(distance) == -1:
                 return -1
