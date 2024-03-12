@@ -58,19 +58,20 @@ class Game:
         self.print_board()
         if moves is None:
             while(True):
+                    self.turn+=1
                     print(f"{int(self.targets(self.box_positions) * len(self.box_positions))}/{len(self.box_positions)}")
                     self.input()
                     self.update_positions()
                     self.update_game_status()
                     self.print_board()
-                    self.turn += 1
         else:
             for move in moves:
+                
+                self.turn+=1                   
                 self.current_move = move
                 self.update_positions()
                 self.update_game_status()
                 self.print_board()
-                self.turn += 1
             return self.state(gamma=gamma)
         
     # POST: Returns a move in ['w', 'a', 's', 'd']
@@ -281,9 +282,10 @@ class Game:
             print("ERROR")
             assert(0)
         
+        
         self.redraw_board(board=board, player_position=player_position, box_positions=box_positions)
         targets = self.targets(box_positions=box_positions)
-        return [targets, self.distance(player_position=player_position, box_positions=box_positions, board=board), self.gamma1(gamma=gamma), self.gamma2(gamma=gamma, box_positions=box_positions), self.connectivity(board=board)], 1 if targets == 1 else 0, 1 if targets == 1 or self.turn > self.max_number_of_turns else 0
+        return [targets, self.distance(player_position=player_position, box_positions=box_positions, board=board), self.gamma1(gamma=gamma), self.gamma2(gamma=gamma, box_positions=box_positions), self.connectivity(board=board)], 1 if targets == 1 and self.turn + 1 <= self.max_number_of_turns else 0, 1 if targets == 1 or self.turn + 1> self.max_number_of_turns else 0
    
     """
     compute features needed for the state feed into the RL agent
@@ -527,8 +529,9 @@ class ReverseGame(Game):
                 
             player_position = next_player_position
         self.redraw_board(board=board, player_position=player_position, box_positions=box_positions)
-        targets = self.targets(box_positions=box_positions) 
-        return [targets, self.distance(player_position=player_position, box_positions=box_positions, board=board), self.gamma1(gamma=gamma), self.gamma2(gamma=gamma, box_positions=box_positions), self.connectivity(board=board)], 1 if targets == 0 else 0, 1 if targets == 0 or self.turn > self.max_number_of_turns else 0
+        targets = self.targets(box_positions=box_positions)
+        
+        return [targets, self.distance(player_position=player_position, box_positions=box_positions, board=board), self.gamma1(gamma=gamma), self.gamma2(gamma=gamma, box_positions=box_positions), self.connectivity(board=board)], 1 if targets == 0 and self.turn + 1 <= self.max_number_of_turns else 0, 1 if targets == 0 or self.turn + 1 > self.max_number_of_turns else 0
      
     # POST: Returns the positions form which boxes can be pulled, returns empty list if no box can be pulled
     def box_movable(self, box_positions, board):
