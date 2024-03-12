@@ -65,6 +65,7 @@ class Game:
                     self.update_game_status()
                     self.print_board()
         else:
+            assert(gamma != None)
             for move in moves:
                 
                 self.turn+=1                   
@@ -556,6 +557,15 @@ class ReverseGame(Game):
         return pullabel_positions
             
     def distance(self,player_position, box_positions, board):
+        """
+        # Manhattan distance from player to all boxes that are not on goal
+        if self.targets(box_positions=box_positions) == 0:
+            return 0
+        else:
+            boxes_on_goal = self.find_elements(GameElements.BOX_ON_GOAL.value, board=board)
+            return sum([abs(player_position[0]-box_on_goal[0]) + abs(player_position[1]-box_on_goal[1]) for box_on_goal in boxes_on_goal])
+        """
+        
         # return distance to next box that is not on goal
         if self.targets(box_positions=box_positions) == 0:
             return 0
@@ -571,6 +581,7 @@ class ReverseGame(Game):
                 return -1
             else :
                 return min(distance.values())
+        
 
 if __name__ == "__main__":
     Wearhouse = Game(1, disable_prints=False)
