@@ -59,8 +59,12 @@ class Engine:
         elif event.key in [pygame.K_LEFT, pygame.K_a]:
             move = "a"
         elif event.key in [pygame.K_RIGHT, pygame.K_d]:
-           move = "d" 
-        state, reward, done = self.game.play(moves=move, gamma=0.99)
+           move = "d"
+        if type(game) is Game:
+            _, state, reward, done = self.game.play(moves=move, gamma=0.99)
+        elif type(game) is ReverseGame:
+            state, reward, done = self.game.play(moves=move, gamma=0.99)
+        
         print(f"state: {state}, reward: {reward}, done: {done}")
     
     def replay(self, level_id, moves, mode):
@@ -107,7 +111,10 @@ class Engine:
                         elif event.key in [pygame.K_SPACE]:
                             print(moves[0])
                             if moves and moves[0] in ["w", "a", "s", "d"]:
-                                state, reward, done = game.play(moves.pop(0), gamma=0.99)
+                                if type(game) is Game:
+                                    _, state, reward, done = game.play(moves.pop(0), gamma=0.99)
+                                if type(game) is ReverseGame:
+                                    state, reward, done = game.play(moves.pop(0), gamma=0.99)
                                 print(f"state: {state}, reward: {reward}, done: {done}")
                                 # Remove running flag to exit the loop after one move
                             else:
@@ -183,14 +190,14 @@ if __name__ == "__main__":
     if moves:
         engine = Engine(None)
         engine.replay(int(level_id), moves, mode)
-        
     elif mode == "game":
+        print("forward")
         game = Game(level_id=int(level_id))
         engine = Engine(game)
         engine.visualize()
         
     else:
-        print("reverse")
+        print("backward")
         game = ReverseGame(Game(level_id=int(level_id)))
         engine = Engine(game)
         engine.visualize()
