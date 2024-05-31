@@ -64,7 +64,7 @@ class SokobanBoard:
         return level
     
     def __repr__(self):
-        return '\n'.join(''.join(element_to_char[int(elem)] for elem in row) for row in self.level)+"\n"
+        return '\n'.join(''.join(element_to_char[int(elem)] for elem in row) for row in self.level)
     
     def find_elements(self, elements):
         if isinstance(elements, int):

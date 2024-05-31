@@ -9,6 +9,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import game.Sokoban as Sokoban
 
 C_PUT = 1.5
+D_PUT = 1000
 
 class Node():
     def __init__(self, parent, state, move):
@@ -18,14 +19,19 @@ class Node():
         self.children = []
         self.q = 0
         self.n = 0
+        self.rollouts = []
         self.is_terminal = self.state.is_terminal() # 100 for win, -1 for ongogin and -100 for loss
         self.max_value = self.is_terminal
+    
+    @property
+    def sum_of_squares(self):
+        return sum([r**2 for r in self.rollouts])
         
     @property
     def u(self):
         if self.parent is None:
             return 0
-        return C_PUT * np.sqrt(2*np.log(self.parent.n)) / (1 + self.n) # TODO add second term
+        return C_PUT * np.sqrt(2*np.log(self.parent.n)) / (1 + self.n) + np.sqrt(self.sum_of_squares / (self.n + 1) - self.q**2 + D_PUT)
     
     @property
     def score(self):
@@ -35,7 +41,7 @@ class Node():
         self.q = (self.q * self.n + value) / (self.n + 1)
         self.n += 1
         if self.max_value < max_value:
-            self.max_val = max_value
+            self.max_value = max_value
         if self.parent:
             self.parent.update(value, max_value)
             
@@ -60,8 +66,10 @@ class Node():
         state = self.state.copy()
         while state.is_terminal() == Sokoban.REWARD_STEP:
             state = state.move(*random.choice(state.valid_moves()))
-        return state.is_terminal()
-    
+        r = state.is_terminal()
+        self.rollouts.append(r)
+        return r
+     
 class MCTS():
     def __init__(self, level_id):
         self.root = Node(parent=None, state=Sokoban.SokobanBoard(level_id=level_id), move=None)
@@ -98,7 +106,7 @@ class MCTS():
         
         while not q.empty():
             node = q.get()
-            node_label = node.state.__repr__()+f"score: {round(node.score, 3)},\n n: {node.n},\n steps: {node.state.steps}"
+            node_label = node.state.__repr__()+f"\nscore: {round(node.score, 3)},\n max_value: {node.max_value},\n n: {node.n},\n steps: {node.state.steps}"
             shape = 'oval'
             color = 'black'
             if node.is_terminal == Sokoban.REWARD_WIN:
