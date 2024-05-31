@@ -9,18 +9,18 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import game.Sokoban as Sokoban
 
 C_PUT = 1.5
-D_PUT = 1000
+D_PUT = 100
 
 class Node():
     def __init__(self, parent, state, move):
         self.move = move
         self.state = state
         self.parent = parent
-        self.children = []
+        self.children = {}
         self.q = 0
         self.n = 0
         self.rollouts = []
-        self.is_terminal = self.state.is_terminal() # 100 for win, -1 for ongogin and -100 for loss
+        self.is_terminal = self.state.is_terminal() # REWARD_WIN for win, REWARD_STEP for ongogin and REWARD_LOSS for loss
         self.max_value = self.is_terminal
     
     @property
@@ -49,17 +49,23 @@ class Node():
         for move in valid_moves:
             new_state = self.state.move(*move)
             child_node = Node(state=new_state, parent=self, move=move)
-            self.children.append(child_node)
-    
+            self.children[move] = child_node
+        
+        # important that this is not done in one loop
+        for move in valid_moves:
+            if self.children[move].is_terminal == Sokoban.REWARD_LOSS:
+                assert self.children[move].should_remove()
+                self.children[move].remove()
+
     def select_child(self):
-        best_score = max(child.score for child in self.children)
-        best_children = [child for child in self.children if child.score == best_score]
+        best_score = max(child.score for child in self.children.values())
+        best_children = [child for child in self.children.values() if child.score == best_score]
         return random.choice(best_children) # break ties randomly
 
     def select_move(self): # TODO: this should be the highest rollout score
         
-        best_value = max(child.max_value for child in self.children)
-        best_children = [child for child in self.children if child.max_value == best_value]
+        best_value = max(child.max_value for child in self.children.values())
+        best_children = [child for child in self.children.values() if child.max_value == best_value]
         return random.choice(best_children).move # break ties randomly
     
     def rollout(self):
@@ -69,11 +75,27 @@ class Node():
         r = state.is_terminal()
         self.rollouts.append(r)
         return r
-     
+    
+    def should_remove(self):
+        if len(self.children) == 0 and not (self.is_terminal == Sokoban.REWARD_WIN):
+            return True
+        
+    def remove(self):
+        assert len(self.children) == 0
+        parent = self.parent
+        del parent.children[self.move]
+        del self
+        if parent.should_remove():
+            parent.remove()
+    
+    def __del__(self):
+        pass
+    
 class MCTS():
     def __init__(self, level_id):
         self.root = Node(parent=None, state=Sokoban.SokobanBoard(level_id=level_id), move=None)
-    
+        print(self.root.state)
+        
     def select_leaf(self, node):
         while len(node.children) != 0 and node.is_terminal == Sokoban.REWARD_STEP:
             node = node.select_child()
@@ -81,12 +103,12 @@ class MCTS():
     
     def expand(self, node):
         if node.is_terminal != Sokoban.REWARD_STEP:
-            node.update(node.is_terminal, node.is_terminal)
+            node.update(node.is_terminal, node.is_terminal) 
         else:
             value = node.rollout()
             node.update(value, value)
             node.expand_node(node.state.valid_moves())
-    
+                
     def run(self, simulations):
         for _ in range(simulations):
             node = self.select_leaf(self.root)
@@ -119,7 +141,7 @@ class MCTS():
                 color = 'red'
             dot.node(str(node), label=node_label, shape=shape, color=color)
             
-            for child in node.children:
+            for child in node.children.values():
                 q.put(child)
                 dot.edge(str(node), str(child), label=str(child.move))
         

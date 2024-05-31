@@ -28,13 +28,13 @@ char_to_element = {
 }
 
 element_to_char = {
-    0: '🟥',
-    1: '⬜',
-    2: '🧍',
-    3: '📦',
-    4: '⚪',
-    5: '⭐',
-    6: '⏺️'
+    0: '⬛',  # Wall
+    1: '⬜',  # Empty space
+    2: '🧍',  # Player
+    3: '📦',  # Box
+    4: '🔲',  # Storage location
+    5: '⭐',  # Box on storage location
+    6: '⏺️'  # Player on storage location
 }
 
 class SokobanBoard:
@@ -56,7 +56,7 @@ class SokobanBoard:
         with open(f'levels/level_{level_id}.txt') as f:
             lines = f.readlines()
             height = len(lines)
-            width = max(len(line) for line in lines)
+            width = max(len(line) for line in lines) - 1 # remove newline
             level = np.ones((height, width), dtype=int)*Elements.WALL.value
             for i, line in enumerate(lines):
                 for j, char in enumerate(line.replace('\n', '')):
