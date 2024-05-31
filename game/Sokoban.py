@@ -34,7 +34,7 @@ element_to_char = {
     3: '📦',  # Box
     4: '🔲',  # Storage location
     5: '⭐',  # Box on storage location
-    6: '⏺️'  # Player on storage location
+    6: '🟥'  # Player on storage location (red square)
 }
 
 class SokobanBoard:
@@ -51,7 +51,15 @@ class SokobanBoard:
             self.level = level
             self.player = player
             self.steps = steps
-        
+            
+        # TODO: make interior search more efficient
+        self.interior = sorted(self.find_interior(*self.player))
+        self.box_positions = sorted(self.find_elements([Elements.BOX.value, Elements.BOX_ON_GOAL.value]))
+        self.hash = self.get_hash()
+    
+    def get_hash(self):
+        return str(self.interior) + str(self.box_positions)
+    
     def load_level(self, level_id):
         with open(f'levels/level_{level_id}.txt') as f:
             lines = f.readlines()
@@ -152,12 +160,46 @@ class SokobanBoard:
     def is_terminal(self):
         if len(self.find_elements(Elements.BOX.value)) == 0:
             return REWARD_WIN
+        if self.check_deadlock():
+            return REWARD_LOSS
         if len(self.valid_moves()) == 0:
             return REWARD_LOSS
         elif self.steps <= MAX_STEP:
             return REWARD_STEP
         else:
             return REWARD_LOSS
+        
+    def check_deadlock(self):
+        if len(self.valid_moves()) == 0:
+            return True
+        boxes = self.find_elements([Elements.BOX.value, Elements.BOX_ON_GOAL.value])
+        for box in boxes:
+            if self.is_deadlocked(box):
+                return True
+        
+        # TODO: add kernels that check for deadlocks
+        return False
+    
+    def is_deadlocked(self, box):
+        # if box is on goal deadlock does not matter
+        if self.level[box] == Elements.BOX_ON_GOAL.value:
+            return False
+        
+        for d1, d2 in zip([(0, 1), (1, 0), (0, -1), (-1, 0)], [(1, 0), (0, -1), (-1, 0), (0, 1)]):
+            box_d1 = (box[0]+d1[0], box[1]+d1[1])
+            box_d2 = (box[0]+d2[0], box[1]+d2[1])
+            
+            obs1 = self.level[box_d1]
+            obs2 = self.level[box_d2]
+            
+            # box is surrounded by walls
+            if obs1 == Elements.WALL.value and obs2 == Elements.WALL.value:
+                return True
+
+            
+
+        return False
+            
 
 if __name__ == '__main__':
     game = SokobanBoard(0)

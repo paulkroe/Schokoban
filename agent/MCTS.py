@@ -2,6 +2,7 @@ import numpy as np
 from graphviz import Digraph
 from queue import Queue
 import random
+from copy import deepcopy
 
 import sys
 import os
@@ -45,34 +46,50 @@ class Node():
         if self.parent:
             self.parent.update(value, max_value)
             
-    def expand_node(self, valid_moves):      
+    def expand_node(self, valid_moves, hashes):
+        # todo hashes   
+        hashes_copy = deepcopy(hashes)
         for move in valid_moves:
             new_state = self.state.move(*move)
-            child_node = Node(state=new_state, parent=self, move=move)
-            self.children[move] = child_node
+            if new_state.hash in hashes_copy:
+                continue
+            else:
+                child_node = Node(state=new_state, parent=self, move=move)
+                self.children[move] = child_node
+                hashes_copy.append(new_state.hash)
         
         # important that this is not done in one loop
         for move in valid_moves:
-            if self.children[move].is_terminal == Sokoban.REWARD_LOSS:
-                assert self.children[move].should_remove()
-                self.children[move].remove()
+            if move in self.children: # could be that child caused cycle and thus was not added
+                if self.children[move].is_terminal == Sokoban.REWARD_LOSS:
+                    assert self.children[move].should_remove()
+                    self.children[move].remove()
 
     def select_child(self):
+        if self.children is None:
+            return None
         best_score = max(child.score for child in self.children.values())
         best_children = [child for child in self.children.values() if child.score == best_score]
         return random.choice(best_children) # break ties randomly
 
-    def select_move(self): # TODO: this should be the highest rollout score
-        
-        best_value = max(child.max_value for child in self.children.values())
-        best_children = [child for child in self.children.values() if child.max_value == best_value]
-        return random.choice(best_children).move # break ties randomly
+    def select_move(self):
+        if self.children is None:
+            return None
+        else:
+            best_value = max(child.max_value for child in self.children.values())
+            best_children = [child for child in self.children.values() if child.max_value == best_value]
+            return random.choice(best_children).move # break ties randomly
     
-    def rollout(self):
+    def rollout(self, hashes):
+        hashes_copy = deepcopy(hashes)
         state = self.state.copy()
+        r = state.is_terminal()
         while state.is_terminal() == Sokoban.REWARD_STEP:
             state = state.move(*random.choice(state.valid_moves()))
-        r = state.is_terminal()
+            if state.hash in hashes_copy:
+                break
+            hashes_copy.append(state.hash)
+            r = state.is_terminal()
         self.rollouts.append(r)
         return r
     
@@ -83,37 +100,44 @@ class Node():
     def remove(self):
         assert len(self.children) == 0
         parent = self.parent
-        del parent.children[self.move]
+        if not parent is None:
+            del parent.children[self.move]
+            if parent.should_remove():
+                parent.remove() 
         del self
-        if parent.should_remove():
-            parent.remove()
-    
     def __del__(self):
         pass
     
 class MCTS():
-    def __init__(self, level_id):
-        self.root = Node(parent=None, state=Sokoban.SokobanBoard(level_id=level_id), move=None)
-        print(self.root.state)
-        
-    def select_leaf(self, node):
+    def __init__(self, sokobanboard):
+        self.root = Node(parent=None, state=sokobanboard, move=None)
+         
+    def select_leaf(self, node, hashes):
         while len(node.children) != 0 and node.is_terminal == Sokoban.REWARD_STEP:
             node = node.select_child()
+            if node is None:
+                break
+            hashes.append(node.state.hash)
         return node
     
-    def expand(self, node):
+    def expand(self, node, hashes):
         if node.is_terminal != Sokoban.REWARD_STEP:
             node.update(node.is_terminal, node.is_terminal) 
         else:
-            value = node.rollout()
+            value = node.rollout(hashes)
             node.update(value, value)
-            node.expand_node(node.state.valid_moves())
+            node.expand_node(node.state.valid_moves(), hashes)
                 
-    def run(self, simulations):
+    def run(self, simulations, visualize=False):
+        
         for _ in range(simulations):
-            node = self.select_leaf(self.root)
-            self.expand(node)
-        self.visualize()
+            hashes = [self.root.state.hash]
+            node = self.select_leaf(self.root, hashes)
+            if node is None:
+                return None
+            self.expand(node, hashes)
+        if visualize:
+            self.visualize()
         return self.best_move
     
     @property
