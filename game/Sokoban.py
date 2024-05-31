@@ -2,6 +2,12 @@ from enum import Enum
 import numpy as np
 from queue import Queue
 
+REWARD_WIN = 1
+REWARD_STEP = 0
+REWARD_LOSS = -1
+
+MAX_STEP = 50
+
 class Elements(Enum):
     WALL = 0
     FLOOR = 1
@@ -21,28 +27,33 @@ char_to_element = {
     '+': Elements.PLAYER_ON_GOAL
 }
 
-element_to_char = {0: '#',
-                    1: ' ',
-                    2: '@',
-                    3: '$',
-                    4: '.',
-                    5: '*',
-                    6: '+'}
+element_to_char = {
+    0: '🟥',
+    1: '⬜',
+    2: '🧍',
+    3: '📦',
+    4: '⚪',
+    5: '⭐',
+    6: '⏺️'
+}
 
 class SokobanBoard:
     
-    def __init__(self, level_id=None, level=None, player=None):
+    def __init__(self, level_id=None, level=None, player=None, steps=None):
         if not level_id is None:
             self.level = self.load_level(level_id)
             self.player = self.find_elements([Elements.PLAYER.value, Elements.PLAYER_ON_GOAL.value])[0]
+            self.steps = 0
         else:
             assert not level is None
             assert not player is None
+            assert not steps is None
             self.level = level
             self.player = player
+            self.steps = steps
         
     def load_level(self, level_id):
-        with open(f'levels/{level_id}.txt') as f:
+        with open(f'levels/level_{level_id}.txt') as f:
             lines = f.readlines()
             height = len(lines)
             width = max(len(line) for line in lines)
@@ -53,7 +64,7 @@ class SokobanBoard:
         return level
     
     def __repr__(self):
-        return '\n'.join(''.join(element_to_char[int(elem)] for elem in row) for row in self.level)
+        return '\n'.join(''.join(element_to_char[int(elem)] for elem in row) for row in self.level)+"\n"
     
     def find_elements(self, elements):
         if isinstance(elements, int):
@@ -64,7 +75,7 @@ class SokobanBoard:
         return list(zip(pos[0], pos[1]))
     
     def find_interior(self, x, y):
-        interior = []
+        interior = [(x, y)]
         positions = Queue()
         positions.put((x, y))
 
@@ -96,23 +107,40 @@ class SokobanBoard:
         for player_pos, d, box_pos in valid_moves_:
             adj_x, adj_y = box_pos[0] + d[0], box_pos[1] + d[1]
             if not self.level[adj_x, adj_y] in [Elements.BOX.value, Elements.BOX_ON_GOAL.value, Elements.WALL.value]:
-                valid_moves.add((player_pos, d, box_pos))
+                valid_moves.add((*player_pos, *d))
        
-        return valid_moves
+        return list(valid_moves)
 
     def move(self, player_x, player_y, dx, dy):
-        assert (self.level[player_x+dx, player_y+dy] in [Elements.BOX.value, Elements.BOX_ON_GOAL.value])
+        NUM_BOXES = len(self.find_elements([Elements.BOX.value, Elements.BOX_ON_GOAL.value]))
+        NUM_GOALS = len(self.find_elements([Elements.GOAL.value, Elements.BOX_ON_GOAL.value, Elements.PLAYER_ON_GOAL.value]))
         
         new_level = self.level.copy()
-        new_level[self.player] = Elements.FLOOR.value if self.level[self.player] == Elements.PLAYER.value else Elements.GOAL.value
-       
-        box_x, box_y = player_x + dx, player_y + dy
-        new_level[box_x, box_y] = Elements.PLAYER.value if self.level[box_x, box_y] == Elements.BOX.value else Elements.PLAYER_ON_GOAL.value
         
-        new_box_x, new_box_y = box_x + dx, box_y + dy
-        new_level[new_box_x, new_box_y] = Elements.BOX.value if self.level[new_box_x, new_box_y] == Elements.FLOOR.value else Elements.BOX_ON_GOAL.value
+        # remove player
+        assert new_level[self.player] in [Elements.PLAYER.value, Elements.PLAYER_ON_GOAL.value]
+        new_level[self.player] = Elements.FLOOR.value if new_level[self.player] == Elements.PLAYER.value else Elements.GOAL.value
         
-        return SokobanBoard(level=new_level, player=(box_x, box_y))
+        # move box
+        new_box_x, new_box_y = player_x + 2*dx, player_y + 2*dy
+        assert new_level[new_box_x, new_box_y] in [Elements.PLAYER.value, Elements.PLAYER_ON_GOAL.value, Elements.FLOOR.value, Elements.GOAL.value]
+        new_level[new_box_x, new_box_y] = Elements.BOX.value if new_level[new_box_x, new_box_y] in [Elements.FLOOR.value, Elements.PLAYER.value] else Elements.BOX_ON_GOAL.value
+        
+        # move player
+        new_player_x, new_player_y = player_x + dx, player_y + dy
+        assert new_level[new_player_x, new_player_y] in [Elements.BOX.value, Elements.BOX_ON_GOAL.value]
+        new_level[new_player_x, new_player_y] = Elements.PLAYER.value if new_level[new_player_x, new_player_y] == Elements.BOX.value else Elements.PLAYER_ON_GOAL.value
+        
+        new_board = SokobanBoard(level=new_level, player=(new_player_x, new_player_y), steps=self.steps+1)
+        NEW_NUM_BOXES = len(new_board.find_elements([Elements.BOX.value, Elements.BOX_ON_GOAL.value]))
+        NEW_NUM_GOALS = len(new_board.find_elements([Elements.GOAL.value, Elements.BOX_ON_GOAL.value, Elements.PLAYER_ON_GOAL.value]))
+        assert NUM_BOXES == NEW_NUM_BOXES
+        assert NUM_GOALS == NEW_NUM_GOALS
+        assert len(new_board.find_elements([Elements.PLAYER.value, Elements.PLAYER_ON_GOAL.value])) == 1
+        return new_board
+    
+    def copy(self):
+        return SokobanBoard(level=self.level.copy(), player=self.player, steps=self.steps)
     
     def mark(self):
         interior = self.find_interior(*self.player)
@@ -120,12 +148,23 @@ class SokobanBoard:
         for x, y in interior:
             level_copy[x, y] = Elements.PLAYER_ON_GOAL.value if level_copy[x, y] == Elements.GOAL.value else Elements.PLAYER.value
         print(SokobanBoard(level=level_copy, player=self.player))
-          
-game = SokobanBoard('level_1')
-while(True):
-    print(game)
-    print(game.valid_moves())
-    input_ = input()
-    input_ = list(map(int, input_.split()))
-    print(input_)
-    game = game.move(*input_)
+        
+    def is_terminal(self):
+        if len(self.find_elements(Elements.BOX.value)) == 0:
+            return REWARD_WIN
+        if len(self.valid_moves()) == 0:
+            return REWARD_LOSS
+        elif self.steps <= MAX_STEP:
+            return REWARD_STEP
+        else:
+            return REWARD_LOSS
+
+if __name__ == '__main__':
+    game = SokobanBoard(0)
+    while(True):
+        print(game)
+        print(game.valid_moves())
+        input_ = input()
+        input_ = list(map(int, input_.split()))
+        print(input_)
+        game = game.move(*input_)
