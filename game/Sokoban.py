@@ -60,8 +60,9 @@ class SokobanBoard:
     def get_hash(self):
         return str(self.interior) + str(self.box_positions)
     
-    def load_level(self, level_id):
-        with open(f'levels/level_{level_id}.txt') as f:
+    def load_level(self, level_id,):
+        path = f"kids_levels/level_{level_id}.txt"
+        with open(path) as f:
             lines = f.readlines()
             height = len(lines)
             width = max(len(line) for line in lines) - 1 # remove newline
