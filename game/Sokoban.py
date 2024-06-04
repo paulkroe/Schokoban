@@ -20,7 +20,6 @@ class Reward():
 
 
 REWARD_WIN = 1
-REWARD_STEP = 0
 REWARD_LOSS = -1
 
 MAX_STEP = 50
@@ -54,9 +53,12 @@ element_to_char = {
     6: '🟥'  # Player on storage location (red square)
 }
 
+def manhattan_distance(boxes, goals):
+   return sum(min(abs(box[0] - goal[0]) + abs(box[1] - goal[1]) for goal in goals) for box in boxes) 
+    
 class SokobanBoard:
     
-    def __init__(self, level_id=None, level=None, player=None, steps=None):
+    def __init__(self, level_id=None, level=None, player=None, steps=None, max_steps=MAX_STEP):
         if not level_id is None:
             self.level = self.load_level(level_id)
             self.player = self.find_elements([Elements.PLAYER.value, Elements.PLAYER_ON_GOAL.value])[0]
@@ -70,6 +72,7 @@ class SokobanBoard:
             self.steps = steps
             
         # TODO: make interior search more efficient
+        self.max_steps = max_steps
         self.interior = sorted(self.find_interior(*self.player))
         self.box_positions = sorted(self.find_elements([Elements.BOX.value, Elements.BOX_ON_GOAL.value]))
         self.hash = self.get_hash()
@@ -178,14 +181,13 @@ class SokobanBoard:
     def reward(self):
         if len(self.find_elements(Elements.BOX.value)) == 0:
             return Reward(REWARD_WIN, "WIN")
-        if self.check_deadlock():
+        if self.check_deadlock() or self.steps > self.max_steps or len(self.find_elements(Elements.BOX.value)) == 0:
             return Reward(REWARD_LOSS, "LOSS")
-        if len(self.valid_moves()) == 0:
-            return Reward(REWARD_LOSS, "LOSS")
-        elif self.steps <= MAX_STEP:
-            return Reward(REWARD_STEP, "STEP")
         else:
-            return Reward(REWARD_LOSS, "LOSS")
+            dist = manhattan_distance(self.find_elements([Elements.BOX.value]), self.find_elements([Elements.GOAL.value, Elements.PLAYER_ON_GOAL.value]))
+            return Reward(1/(1+dist), "STEP")
+
+
         
     def check_deadlock(self):
         if len(self.valid_moves()) == 0:

@@ -1,26 +1,16 @@
-import numpy as np
 import sys
 import os
-from tqdm import tqdm
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import game.Sokoban as Sokoban
-import agent.MCTS as MCTS
+import agent.sokoban_solver as sokoban_solver
+import argparse
 
-LEVEL_ID = 4
+parser = argparse.ArgumentParser(description='Sokoban Solver')
+parser.add_argument('--level_id', type=int, help='Level ID')
+parser.add_argument('--num_sims', default=1600, type=int, help='Number of simulations in the MCTS')
+parser.add_argument('--max_steps', type=int, default=100, help='Maximum number of steps to solve the level')
+parser.add_argument('--verbose', type=int, default=1, help='0 for no output, 1 for output')
+args = parser.parse_args()
 
-board = Sokoban.SokobanBoard(level_id=LEVEL_ID)
-print(board)
-for i in range(100):
-    tree = MCTS.MCTS(board)
-    move = tree.run(10, visualize=True)
-    if move is None:
-        break
-    board = board.move(*move)
-    if board.reward().get_type() != "STEP":  
-        print("==========")
-        print(board)
-        print(board.reward().get_type())        
-        break
-    print("==========")
-    print(board)
+solver = sokoban_solver.Solver()
+solver.solve(args.level_id, args.num_sims, args.max_steps, args.verbose)
     

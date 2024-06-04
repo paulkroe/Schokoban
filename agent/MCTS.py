@@ -9,7 +9,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import game.Sokoban as Sokoban
 
-C_PUT = 1.5
+C_PUT = 32
 D_PUT = 100
 
 class Node():
@@ -65,14 +65,14 @@ class Node():
                     self.children[move].remove()
 
     def select_child(self):
-        if self.children is None:
+        if len(self.children) == 0:
             return None
         best_score = max(child.score for child in self.children.values())
         best_children = [child for child in self.children.values() if child.score == best_score]
         return random.choice(best_children) # break ties randomly
 
     def select_move(self):
-        if self.children is None:
+        if len(self.children) == 0:
             return None
         else:
             best_value = max(child.max_value for child in self.children.values())
@@ -137,7 +137,25 @@ class MCTS():
             self.expand(node, hashes)
         if visualize:
             self.visualize()
-        return self.best_move
+            
+        if self.root.max_value == Sokoban.REWARD_WIN:
+            moves = []
+            node = self.root
+            while len(node.children) != 0:
+                move = node.select_move()
+                moves.append(move)
+                node = node.children[move]
+            if node.reward.get_type() != "WIN":
+                print(node.state)
+                print(moves)
+                print("ERROR")
+            return moves
+        else:
+            best_move = self.best_move
+            if best_move is None:
+                return []
+            else:
+                return[self.best_move]
     
     @property
     def best_move(self):
