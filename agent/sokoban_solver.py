@@ -12,8 +12,8 @@ class Solver():
         if verbose == 1:
             print(string)            
     
-    def solve(self, level_id, num_sims, max_steps, verbose=0):
-        board = Sokoban.SokobanBoard(level_id=level_id, max_steps=max_steps)
+    def solve(self, level_id, pre, num_sims, max_steps, verbose=0):
+        board = Sokoban.SokobanBoard(level_id=level_id, pre=pre, max_steps=max_steps)
         self.print(board, verbose)
         for _ in range(max_steps):
             tree = MCTS.MCTS(board)

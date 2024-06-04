@@ -2,7 +2,15 @@ from enum import Enum
 import numpy as np
 from queue import Queue
 
-    
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import game.Sokoban as Sokoban
+from reward_functions.min_cost_matching import min_cost_matching
+from game.GameElements import Elements, char_to_element, element_to_char
+
+MAX_STEP = 1000
+
 class Reward():
     def __init__(self, value, reward_type):
         self.reward_type = reward_type
@@ -17,50 +25,14 @@ class Reward():
     def get_type(self):
         return self.reward_type
 
+# negative minimum cost perfect matching (Pushing the limits: New developments in single-agent search: Technical report) 
 
 
-REWARD_WIN = 1
-REWARD_LOSS = -1
-
-MAX_STEP = 50
-
-class Elements(Enum):
-    WALL = 0
-    FLOOR = 1
-    PLAYER = 2
-    BOX = 3
-    GOAL = 4
-    BOX_ON_GOAL = 5
-    PLAYER_ON_GOAL = 6
-
-char_to_element = {
-    '#': Elements.WALL,
-    ' ': Elements.FLOOR,
-    '@': Elements.PLAYER,
-    '$': Elements.BOX,
-    '.': Elements.GOAL,
-    '*': Elements.BOX_ON_GOAL,
-    '+': Elements.PLAYER_ON_GOAL
-}
-
-element_to_char = {
-    0: '⬛',  # Wall
-    1: '⬜',  # Empty space
-    2: '🧍',  # Player
-    3: '📦',  # Box
-    4: '🔲',  # Storage location
-    5: '⭐',  # Box on storage location
-    6: '🟥'  # Player on storage location (red square)
-}
-
-def manhattan_distance(boxes, goals):
-   return sum(min(abs(box[0] - goal[0]) + abs(box[1] - goal[1]) for goal in goals) for box in boxes) 
-    
 class SokobanBoard:
     
-    def __init__(self, level_id=None, level=None, player=None, steps=None, max_steps=MAX_STEP):
+    def __init__(self, level_id=None, pre=None, level=None, player=None, steps=None, max_steps=MAX_STEP):
         if not level_id is None:
-            self.level = self.load_level(level_id)
+            self.level = self.load_level(level_id, pre)
             self.player = self.find_elements([Elements.PLAYER.value, Elements.PLAYER_ON_GOAL.value])[0]
             self.steps = 0
         else:
@@ -80,8 +52,8 @@ class SokobanBoard:
     def get_hash(self):
         return str(self.interior) + str(self.box_positions)
     
-    def load_level(self, level_id,):
-        path = f"kids_levels/level_{level_id}.txt"
+    def load_level(self, level_id, pre=""):
+        path = f"{pre}levels/level_{level_id}.txt"
         with open(path) as f:
             lines = f.readlines()
             height = len(lines)
@@ -179,15 +151,13 @@ class SokobanBoard:
         print(SokobanBoard(level=level_copy, player=self.player))
         
     def reward(self):
+        reward = -min_cost_matching(self)
         if len(self.find_elements(Elements.BOX.value)) == 0:
-            return Reward(REWARD_WIN, "WIN")
+            return Reward(reward, "WIN")
         if self.check_deadlock() or self.steps > self.max_steps or len(self.find_elements(Elements.BOX.value)) == 0:
-            return Reward(REWARD_LOSS, "LOSS")
+            return Reward(reward, "LOSS")
         else:
-            dist = manhattan_distance(self.find_elements([Elements.BOX.value]), self.find_elements([Elements.GOAL.value, Elements.PLAYER_ON_GOAL.value]))
-            return Reward(1/(1+dist), "STEP")
-
-
+            return Reward(reward, "STEP")
         
     def check_deadlock(self):
         if len(self.valid_moves()) == 0:
@@ -216,17 +186,4 @@ class SokobanBoard:
             if obs1 == Elements.WALL.value and obs2 == Elements.WALL.value:
                 return True
 
-            
-
         return False
-            
-
-if __name__ == '__main__':
-    game = SokobanBoard(0)
-    while(True):
-        print(game)
-        print(game.valid_moves())
-        input_ = input()
-        input_ = list(map(int, input_.split()))
-        print(input_)
-        game = game.move(*input_)

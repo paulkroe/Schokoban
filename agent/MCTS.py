@@ -9,7 +9,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import game.Sokoban as Sokoban
 
-C_PUT = 32
+C_PUT = 16
 D_PUT = 100
 
 class Node():
@@ -20,13 +20,12 @@ class Node():
         self.children = {}
         self.q = 0
         self.n = 0
-        self.rollouts = []
         self.reward = self.state.reward()
-        self.max_value = self.reward.get_value()
+        self.max_value = self.reward
     
     @property
     def sum_of_squares(self):
-        return sum([r**2 for r in self.rollouts])
+        return self.reward.get_value()**2
         
     @property
     def u(self):
@@ -41,7 +40,7 @@ class Node():
     def update(self, value, max_value):
         self.q = (self.q * self.n + value) / (self.n + 1)
         self.n += 1
-        if self.max_value < max_value:
+        if self.max_value.get_value() < max_value.get_value():
             self.max_value = max_value
         if self.parent:
             self.parent.update(value, max_value)
@@ -69,14 +68,20 @@ class Node():
             return None
         best_score = max(child.score for child in self.children.values())
         best_children = [child for child in self.children.values() if child.score == best_score]
+        if len(best_children) == 0:
+            print("best_score", best_score)
+            print([child.score for child in self.children.values()])
+            print("children", self.children)
+            visualize(self)
+            assert 0
         return random.choice(best_children) # break ties randomly
 
     def select_move(self):
         if len(self.children) == 0:
             return None
         else:
-            best_value = max(child.max_value for child in self.children.values())
-            best_children = [child for child in self.children.values() if child.max_value == best_value]
+            best_value = max(child.max_value.get_value() for child in self.children.values())
+            best_children = [child for child in self.children.values() if child.max_value.get_value() == best_value]
             return random.choice(best_children).move # break ties randomly
     
     def rollout(self, hashes):
@@ -89,7 +94,6 @@ class Node():
                 break
             hashes_copy.append(state.hash)
             r = state.reward()
-        self.rollouts.append(r.get_value())
         return r
     
     def should_remove(self):
@@ -121,10 +125,10 @@ class MCTS():
     
     def expand(self, node, hashes):
         if node.reward.get_type() != "STEP":
-            node.update(node.reward.get_value(), node.reward.get_value())   
+            node.update(node.reward.get_value(), node.reward)   
         else:
             reward = node.rollout(hashes)
-            node.update(reward.get_value(), reward.get_value())
+            node.update(reward.get_value(), reward)
             node.expand_node(node.state.valid_moves(), hashes)
                 
     def run(self, simulations, visualize=False):
@@ -138,52 +142,53 @@ class MCTS():
         if visualize:
             self.visualize()
             
-        if self.root.max_value == Sokoban.REWARD_WIN:
+        if self.root.max_value.get_type() == "WIN":
             moves = []
             node = self.root
+            # if might be that after this loop node.state.reward().get_type() != "WIN" if the solution was discovered during rollout
             while len(node.children) != 0:
                 move = node.select_move()
                 moves.append(move)
                 node = node.children[move]
-            if node.reward.get_type() != "WIN":
-                print(node.state)
-                print(moves)
-                print("ERROR")
-            return moves
         else:
             best_move = self.best_move
             if best_move is None:
-                return []
+                moves =  []
             else:
-                return[self.best_move]
+                moves = [self.best_move]
+            
+        return moves
     
     @property
     def best_move(self):
         return self.root.select_move()
     
     def visualize(self):
-        dot = Digraph()
-        q = Queue()
+        visualize(self.root)
+    
+def visualize(node):
+    dot = Digraph()
+    q = Queue()
+    
+    q.put(node)
+    
+    while not q.empty():
+        node = q.get()
+        node_label = node.state.__repr__()+f"\nscore: {round(node.score, 3)},\n max_value: {node.max_value},\n n: {node.n},\n steps: {node.state.steps}\nreward: {node.reward}"
+        shape = 'oval'
+        color = 'black'
+        if node.reward.get_type() == "WIN":
+            node_label += f"\noutcome: {node.reward.get_type()}"
+            shape = 'octagon'
+            color = 'green'
+        elif node.reward.get_type() == "LOSS":
+            node_label += f",\noutcome: {node.reward.get_type()}"
+            shape = 'rectangle'
+            color = 'red'
+        dot.node(str(node), label=node_label, shape=shape, color=color)
         
-        q.put(self.root)
-        
-        while not q.empty():
-            node = q.get()
-            node_label = node.state.__repr__()+f"\nscore: {round(node.score, 3)},\n max_value: {node.max_value},\n n: {node.n},\n steps: {node.state.steps}"
-            shape = 'oval'
-            color = 'black'
-            if node.reward.get_type() == "WIN":
-                node_label += f"\noutcome: {node.reward.get_type()}"
-                shape = 'octagon'
-                color = 'green'
-            elif node.reward.get_type() == "LOSS":
-                node_label += f",\noutcome: {node.reward.get_type()}"
-                shape = 'rectangle'
-                color = 'red'
-            dot.node(str(node), label=node_label, shape=shape, color=color)
-            
-            for child in node.children.values():
-                q.put(child)
-                dot.edge(str(node), str(child), label=str(child.move))
-        
-        dot.render('mcts', format='pdf', cleanup=True)
+        for child in node.children.values():
+            q.put(child)
+            dot.edge(str(node), str(child), label=str(child.move))
+    
+    dot.render('mcts', format='pdf', cleanup=True)
