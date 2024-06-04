@@ -2,6 +2,23 @@ from enum import Enum
 import numpy as np
 from queue import Queue
 
+    
+class Reward():
+    def __init__(self, value, reward_type):
+        self.reward_type = reward_type
+        self.value = value
+    
+    def __repr__(self):
+        return "Reward( " + str(self.value) + ", type = " + str(self.reward_type) + ")"
+    
+    def get_value(self):
+        return self.value
+    
+    def get_type(self):
+        return self.reward_type
+
+
+
 REWARD_WIN = 1
 REWARD_STEP = 0
 REWARD_LOSS = -1
@@ -158,17 +175,17 @@ class SokobanBoard:
             level_copy[x, y] = Elements.PLAYER_ON_GOAL.value if level_copy[x, y] == Elements.GOAL.value else Elements.PLAYER.value
         print(SokobanBoard(level=level_copy, player=self.player))
         
-    def is_terminal(self):
+    def reward(self):
         if len(self.find_elements(Elements.BOX.value)) == 0:
-            return REWARD_WIN
+            return Reward(REWARD_WIN, "WIN")
         if self.check_deadlock():
-            return REWARD_LOSS
+            return Reward(REWARD_LOSS, "LOSS")
         if len(self.valid_moves()) == 0:
-            return REWARD_LOSS
+            return Reward(REWARD_LOSS, "LOSS")
         elif self.steps <= MAX_STEP:
-            return REWARD_STEP
+            return Reward(REWARD_STEP, "STEP")
         else:
-            return REWARD_LOSS
+            return Reward(REWARD_LOSS, "LOSS")
         
     def check_deadlock(self):
         if len(self.valid_moves()) == 0:

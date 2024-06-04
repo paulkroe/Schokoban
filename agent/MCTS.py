@@ -21,8 +21,8 @@ class Node():
         self.q = 0
         self.n = 0
         self.rollouts = []
-        self.is_terminal = self.state.is_terminal() # REWARD_WIN for win, REWARD_STEP for ongogin and REWARD_LOSS for loss
-        self.max_value = self.is_terminal
+        self.reward = self.state.reward()
+        self.max_value = self.reward.get_value()
     
     @property
     def sum_of_squares(self):
@@ -47,7 +47,6 @@ class Node():
             self.parent.update(value, max_value)
             
     def expand_node(self, valid_moves, hashes):
-        # todo hashes   
         hashes_copy = deepcopy(hashes)
         for move in valid_moves:
             new_state = self.state.move(*move)
@@ -57,11 +56,11 @@ class Node():
                 child_node = Node(state=new_state, parent=self, move=move)
                 self.children[move] = child_node
                 hashes_copy.append(new_state.hash)
-        
+                
         # important that this is not done in one loop
         for move in valid_moves:
             if move in self.children: # could be that child caused cycle and thus was not added
-                if self.children[move].is_terminal == Sokoban.REWARD_LOSS:
+                if self.children[move].reward.get_type() == "LOSS":
                     assert self.children[move].should_remove()
                     self.children[move].remove()
 
@@ -83,18 +82,18 @@ class Node():
     def rollout(self, hashes):
         hashes_copy = deepcopy(hashes)
         state = self.state.copy()
-        r = state.is_terminal()
-        while state.is_terminal() == Sokoban.REWARD_STEP:
+        r = state.reward()
+        while state.reward().get_type() == "STEP":
             state = state.move(*random.choice(state.valid_moves()))
             if state.hash in hashes_copy:
                 break
             hashes_copy.append(state.hash)
-            r = state.is_terminal()
-        self.rollouts.append(r)
+            r = state.reward()
+        self.rollouts.append(r.get_value())
         return r
     
     def should_remove(self):
-        if len(self.children) == 0 and not (self.is_terminal == Sokoban.REWARD_WIN):
+        if len(self.children) == 0 and not (self.reward.get_type() == "WIN"):
             return True
         
     def remove(self):
@@ -113,7 +112,7 @@ class MCTS():
         self.root = Node(parent=None, state=sokobanboard, move=None)
          
     def select_leaf(self, node, hashes):
-        while len(node.children) != 0 and node.is_terminal == Sokoban.REWARD_STEP:
+        while len(node.children) != 0 and node.reward.get_type() == "STEP":
             node = node.select_child()
             if node is None:
                 break
@@ -121,11 +120,11 @@ class MCTS():
         return node
     
     def expand(self, node, hashes):
-        if node.is_terminal != Sokoban.REWARD_STEP:
-            node.update(node.is_terminal, node.is_terminal) 
+        if node.reward.get_type() != "STEP":
+            node.update(node.reward.get_value(), node.reward.get_value())   
         else:
-            value = node.rollout(hashes)
-            node.update(value, value)
+            reward = node.rollout(hashes)
+            node.update(reward.get_value(), reward.get_value())
             node.expand_node(node.state.valid_moves(), hashes)
                 
     def run(self, simulations, visualize=False):
@@ -155,12 +154,12 @@ class MCTS():
             node_label = node.state.__repr__()+f"\nscore: {round(node.score, 3)},\n max_value: {node.max_value},\n n: {node.n},\n steps: {node.state.steps}"
             shape = 'oval'
             color = 'black'
-            if node.is_terminal == Sokoban.REWARD_WIN:
-                node_label += f"\noutcome: {node.is_terminal}"
+            if node.reward.get_type() == "WIN":
+                node_label += f"\noutcome: {node.reward.get_type()}"
                 shape = 'octagon'
                 color = 'green'
-            elif node.is_terminal == Sokoban.REWARD_LOSS:
-                node_label += f",\noutcome: {node.is_terminal}"
+            elif node.reward.get_type() == "LOSS":
+                node_label += f",\noutcome: {node.reward.get_type()}"
                 shape = 'rectangle'
                 color = 'red'
             dot.node(str(node), label=node_label, shape=shape, color=color)
