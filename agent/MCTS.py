@@ -22,10 +22,7 @@ class Node():
         self.n = 0
         self.reward = self.state.reward()
         self.max_value = self.reward
-    
-    @property
-    def sum_of_squares(self):
-        return self.reward.get_value()**2
+        self.sum_of_squares = self.reward.get_value()**2
         
     @property
     def u(self):
@@ -40,6 +37,7 @@ class Node():
     def update(self, value, max_value):
         self.q = (self.q * self.n + value) / (self.n + 1)
         self.n += 1
+        self.sum_of_squares = self.sum_of_squares + value**2
         if self.max_value.get_value() < max_value.get_value():
             self.max_value = max_value
         if self.parent:

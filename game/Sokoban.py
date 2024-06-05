@@ -5,9 +5,9 @@ from queue import Queue
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import game.Sokoban as Sokoban
 from reward_functions.min_cost_matching import min_cost_matching
 from game.GameElements import Elements, char_to_element, element_to_char
+from deadlock_detection.detect_deadlocks import check_deadlock
 
 MAX_STEP = 1000
 
@@ -52,8 +52,11 @@ class SokobanBoard:
     def get_hash(self):
         return str(self.interior) + str(self.box_positions)
     
-    def load_level(self, level_id, pre=""):
-        path = f"{pre}levels/level_{level_id}.txt"
+    def load_level(self, level_id, pre=None):
+        if pre is not None:
+            path = f"{pre}levels/level_{level_id}.txt"
+        else:
+            path = f"levels/level_{level_id}.txt"
         with open(path) as f:
             lines = f.readlines()
             height = len(lines)
@@ -62,6 +65,15 @@ class SokobanBoard:
             for i, line in enumerate(lines):
                 for j, char in enumerate(line.replace('\n', '')):
                     level[i, j] = char_to_element[char].value
+                    
+            # fix left side:
+            for row in level:
+                for i in range(len(row)):
+                    if row[i] == Elements.FLOOR.value:
+                        row[i] = Elements.WALL.value
+                    else:
+                        break
+            
         return level
     
     def __repr__(self):
@@ -154,36 +166,7 @@ class SokobanBoard:
         reward = -min_cost_matching(self)
         if len(self.find_elements(Elements.BOX.value)) == 0:
             return Reward(reward, "WIN")
-        if self.check_deadlock() or self.steps > self.max_steps or len(self.find_elements(Elements.BOX.value)) == 0:
+        if check_deadlock(self) or self.steps > self.max_steps:
             return Reward(reward, "LOSS")
         else:
             return Reward(reward, "STEP")
-        
-    def check_deadlock(self):
-        if len(self.valid_moves()) == 0:
-            return True
-        boxes = self.find_elements([Elements.BOX.value, Elements.BOX_ON_GOAL.value])
-        for box in boxes:
-            if self.is_deadlocked(box):
-                return True
-        
-        # TODO: add kernels that check for deadlocks
-        return False
-    
-    def is_deadlocked(self, box):
-        # if box is on goal deadlock does not matter
-        if self.level[box] == Elements.BOX_ON_GOAL.value:
-            return False
-        
-        for d1, d2 in zip([(0, 1), (1, 0), (0, -1), (-1, 0)], [(1, 0), (0, -1), (-1, 0), (0, 1)]):
-            box_d1 = (box[0]+d1[0], box[1]+d1[1])
-            box_d2 = (box[0]+d2[0], box[1]+d2[1])
-            
-            obs1 = self.level[box_d1]
-            obs2 = self.level[box_d2]
-            
-            # box is surrounded by walls
-            if obs1 == Elements.WALL.value and obs2 == Elements.WALL.value:
-                return True
-
-        return False
