@@ -30,5 +30,7 @@ class Solver():
                     return board.reward().get_type()
                 self.print("==========", verbose)
                 self.print(board, verbose)
+            
+            self.print("==========", verbose)
         
         return "LOSS"

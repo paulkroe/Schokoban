@@ -3,6 +3,8 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import agent.sokoban_solver as sokoban_solver
 import argparse
+import random
+random.seed(0)
 
 parser = argparse.ArgumentParser(description='Sokoban Solver')
 parser.add_argument('--level_id', type=int, help='Level ID')

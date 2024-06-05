@@ -1,26 +1,63 @@
-Solved:
-1, 10
-2, 10
-3, 10
-4, 100
-5, 2400
-6, 2400
-7, 2400
-8, 2400
-10, 2400
-11, 2400
-12, 2400
-13, 2400
-14, 2400
-15, 2400
-16, 2400
-17, 2400
-18, 2400
-19, 2400
-20, 2400
-21, 2400
-22, 2400
-23, 2400
-24, x
-25, 2400
+python3 kids_levels/solve_levels.py --num_sim=5000 --max_steps=50 --verbose=0
+Level 1: WIN.
+Level 2: WIN.
+Level 3: WIN.
+Level 4: WIN.
+Level 5: WIN.
+Level 6: WIN.
+Level 7: WIN.
+Level 8: WIN.
+Level 9: WIN.
+Level 10: WIN.
+Level 11: WIN.
+Level 12: WIN.
+Level 13: WIN.
+Level 14: WIN.
+Level 15: WIN.
+Level 16: WIN.
+Level 17: WIN.
+Level 18: WIN.
+Level 19: WIN.
+Level 20: WIN.
+Level 21: WIN.
+Level 22: WIN.
+Level 23: WIN.
+Level 24: WIN.
+Level 25: WIN.
+Level 26: WIN.
+Level 27: WIN.
+Level 28: WIN.
+Level 29: WIN.
+Level 30: WIN.
+Level 31: WIN.
+Level 32: WIN.
+Level 33: WIN.
+Level 34: WIN.
+Level 35: WIN.
+Level 36: WIN.
+Level 37: WIN.
+Level 38: WIN.
+Level 39: LOSS.
+Level 40: LOSS.
+Level 41: WIN.
+Level 42: WIN.
+Level 43: WIN.
+Level 44: WIN.
+Level 45: WIN.
+Level 46: WIN.
+Level 47: WIN.
+Level 48: WIN.
+Level 49: WIN.
+Level 50: WIN.
+Level 51: WIN.
+Level 52: WIN.
+Level 53: WIN.
+Level 54: WIN.
+Level 55: WIN.
+Level 56: LOSS.
+Level 57: LOSS.
+Level 58: WIN.
+Level 59: WIN.
+Level 60: LOSS.
 
+Solved 55 out of 60 levels.

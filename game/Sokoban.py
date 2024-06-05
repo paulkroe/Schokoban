@@ -8,22 +8,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from reward_functions.min_cost_matching import min_cost_matching
 from game.GameElements import Elements, char_to_element, element_to_char
 from deadlock_detection.detect_deadlocks import check_deadlock
+from game.reward import Reward
 
 MAX_STEP = 1000
-
-class Reward():
-    def __init__(self, value, reward_type):
-        self.reward_type = reward_type
-        self.value = value
-    
-    def __repr__(self):
-        return "Reward( " + str(self.value) + ", type = " + str(self.reward_type) + ")"
-    
-    def get_value(self):
-        return self.value
-    
-    def get_type(self):
-        return self.reward_type
 
 # negative minimum cost perfect matching (Pushing the limits: New developments in single-agent search: Technical report) 
 
@@ -144,7 +131,7 @@ class SokobanBoard:
         assert new_level[new_player_x, new_player_y] in [Elements.BOX.value, Elements.BOX_ON_GOAL.value]
         new_level[new_player_x, new_player_y] = Elements.PLAYER.value if new_level[new_player_x, new_player_y] == Elements.BOX.value else Elements.PLAYER_ON_GOAL.value
         
-        new_board = SokobanBoard(level=new_level, player=(new_player_x, new_player_y), steps=self.steps+1)
+        new_board = SokobanBoard(level=new_level, player=(new_player_x, new_player_y), steps=self.steps+1, max_steps=self.max_steps)
         NEW_NUM_BOXES = len(new_board.find_elements([Elements.BOX.value, Elements.BOX_ON_GOAL.value]))
         NEW_NUM_GOALS = len(new_board.find_elements([Elements.GOAL.value, Elements.BOX_ON_GOAL.value, Elements.PLAYER_ON_GOAL.value]))
         assert NUM_BOXES == NEW_NUM_BOXES
