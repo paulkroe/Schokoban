@@ -15,23 +15,21 @@ MAX_STEP = 1000
 
 class ReverseSokobanBoard:
     
-    def __init__(self, level_id=None, pre=None, level=None, player=None, steps=None, components=None, max_steps=MAX_STEP):
+    def __init__(self, level_id=None, pre=None, level=None, player=None, steps=None, max_steps=MAX_STEP):
         if not level_id is None:
             self.level = self.load_level(level_id, pre)
-            self.components = self.find_components()
+            components = self.find_components()
             # set player in larges connected component and store other connected components
-            self.player = self.components[0][0]
+            self.player = components[0][0]
             self.level[self.player] = Elements.PLAYER.value if self.level[self.player] == Elements.FLOOR.value else Elements.PLAYER_ON_GOAL.value
             self.steps = 0
         else:
             assert not level is None
             assert not player is None
             assert not steps is None
-            assert not components is None
             self.level = level
             self.player = player
             self.steps = steps
-            self.components = components
             
         # TODO: make interior search more efficient and interior search is not needed since we know component
         self.max_steps = max_steps
@@ -182,7 +180,7 @@ class ReverseSokobanBoard:
         assert new_level[new_player_x, new_player_y] in [Elements.FLOOR.value, Elements.GOAL.value]
         new_level[new_player_x, new_player_y] = Elements.PLAYER.value if new_level[new_player_x, new_player_y] == Elements.FLOOR.value else Elements.PLAYER_ON_GOAL.value
         
-        new_board = ReverseSokobanBoard(level=new_level, player=(new_player_x, new_player_y), steps=self.steps+1, components=self.components, max_steps=self.max_steps)
+        new_board = ReverseSokobanBoard(level=new_level, player=(new_player_x, new_player_y), steps=self.steps+1, max_steps=self.max_steps)
         NEW_NUM_BOXES = len(new_board.find_elements([Elements.BOX.value, Elements.BOX_ON_GOAL.value]))
         NEW_NUM_GOALS = len(new_board.find_elements([Elements.GOAL.value, Elements.BOX_ON_GOAL.value, Elements.PLAYER_ON_GOAL.value]))
         assert NUM_BOXES == NEW_NUM_BOXES
@@ -191,7 +189,7 @@ class ReverseSokobanBoard:
         return new_board
     
     def copy(self):
-        return ReverseSokobanBoard(level=self.level.copy(), player=self.player, steps=self.steps, components=self.components.copy())
+        return ReverseSokobanBoard(level=self.level.copy(), player=self.player, steps=self.steps, max_steps=self.max_steps)
         
     def reward(self):
         reward = -min_cost_matching(self)

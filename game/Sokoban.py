@@ -140,7 +140,7 @@ class SokobanBoard:
         return new_board
     
     def copy(self):
-        return SokobanBoard(level=self.level.copy(), player=self.player, steps=self.steps)
+        return SokobanBoard(level=self.level.copy(), player=self.player, steps=self.steps, max_steps=self.max_steps)
     
     def mark(self):
         interior = self.find_interior(*self.player)

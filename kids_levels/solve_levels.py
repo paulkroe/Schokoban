@@ -23,7 +23,7 @@ outcomes = [None for _ in range(NUM_LEVELS)]
 
 for level_id in range(NUM_LEVELS):
     solver = sokoban_solver.Solver()
-    outcome = solver.solve(level_id+1, "kids_", args.num_sims, args.max_steps, args.verbose)
+    outcome = solver.solve(level_id+1, "kids_", 0, args.num_sims, args.max_steps, args.verbose)
     print(f"Level {level_id+1}: {outcome}.")
     outcomes[level_id] = 1 if outcome == "WIN" else 0
 
