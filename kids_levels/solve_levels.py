@@ -11,6 +11,7 @@ random.seed(0)
 parser = argparse.ArgumentParser(description='Sokoban Solver')
 parser.add_argument('--num_sims', default=1600, type=int, help='Number of simulations in the MCTS')
 parser.add_argument('--max_steps', type=int, default=100, help='Maximum number of steps to solve the level')
+parser.add_argument('--rev', type=int, default=0, help='0 for Sokoban, 1 for Reverse Sokoban')
 parser.add_argument('--verbose', type=int, default=0, help='0 for no output, 1 for output')
 args = parser.parse_args()
 
@@ -23,9 +24,10 @@ outcomes = [None for _ in range(NUM_LEVELS)]
 
 for level_id in range(NUM_LEVELS):
     solver = sokoban_solver.Solver()
-    outcome = solver.solve(level_id+1, "kids_", 0, args.num_sims, args.max_steps, args.verbose)
+    outcome = solver.solve(level_id+1, "kids_", args.rev, args.num_sims, args.max_steps, args.verbose)
     print(f"Level {level_id+1}: {outcome}.")
     outcomes[level_id] = 1 if outcome == "WIN" else 0
 
 print(f"Soleved {sum(outcomes)} out of {NUM_LEVELS} levels.")
 # python3 kids_levels/solve_levels.py --num_sim=5000 --max_steps=50 --verbose=0
+# python3 kids_levels/solve_levels.py --num_sim=5000 --max_steps=50 --verbose=0 --rev=1

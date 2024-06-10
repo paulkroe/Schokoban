@@ -27,7 +27,6 @@ class Solver():
             start_positions = [comp[0] for comp in components]
             # add player
             board.player = start_positions[0]
-            print(board.player)
             board.level[board.player] = Sokoban.Elements.PLAYER.value if board.level[board.player] == Sokoban.Elements.FLOOR.value else Sokoban.Elements.PLAYER_ON_GOAL.value
             
         for start_position in start_positions:

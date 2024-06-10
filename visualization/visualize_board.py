@@ -19,8 +19,16 @@ char_to_element = {
     '.': Elements.GOAL,
     '*': Elements.BOX_ON_GOAL,
     '+': Elements.PLAYER_ON_GOAL,
-    'x': 'x', # for marking interior
-    'o': 'o' # for marking arrows
+    'x': 'x',
+    'o': 'o',
+    'i': 'i',
+    "-": '-',
+    ">": '>',
+    "ü": 'ü',
+    "ö": 'ö',
+    'q': 'q',
+    'w': 'w',
+    'e': 'e'
 } 
 
 pygame.init()
@@ -41,25 +49,30 @@ sprites = {
     Elements.GOAL: load_and_scale_sprite('visualization/sprites/goal.png', tile_size),
     Elements.BOX_ON_GOAL: load_and_scale_sprite('visualization/sprites/box_on_goal.png', tile_size),
     Elements.PLAYER_ON_GOAL: load_and_scale_sprite('visualization/sprites/player_on_goal.png', tile_size),
-    'o': load_and_scale_sprite('visualization/sprites/arrow.png', tile_size)
+    'x': load_and_scale_sprite('visualization/sprites/player_interior.png', tile_size),
+    'o': load_and_scale_sprite('visualization/sprites/floor_interior.png', tile_size),
+    'i': load_and_scale_sprite('visualization/sprites/goal_interior.png', tile_size),
+    '-': load_and_scale_sprite('visualization/sprites/arrow.png', tile_size),
+    '>': load_and_scale_sprite('visualization/sprites/move_box.png', tile_size),
+    'ö': load_and_scale_sprite('visualization/sprites/arrow_flipped.png', tile_size),
+    'ü': load_and_scale_sprite('visualization/sprites/move_goal.png', tile_size),
+    'q': load_and_scale_sprite('visualization/sprites/uparrow.png', tile_size),
+    'w': load_and_scale_sprite('visualization/sprites/downarrow.png', tile_size),
+    'e': load_and_scale_sprite('visualization/sprites/goal_box.png', tile_size)
 }
 
 board = [
-    "#####",
-    "# . #",
-    "#   #",
-    "# @ #",
-    "# $ #",
-    "#####"
+    "########",
+    "#oooö>ü#",
+    "#qö>üoo#",
+    "#e#$####",
+    "#w .   #",
+    "########"
 ]
-
 board_width = len(board[0])
 board_height = len(board)
 screen_width = board_width * tile_size
 screen_height = board_height * tile_size
-
-background_image = pygame.image.load('visualization/sprites/background.png')
-background_image = pygame.transform.scale(background_image, (screen_width, screen_height))
 
 screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption('Sokoban')
@@ -69,9 +82,6 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-
-    # Draw the background image
-    screen.blit(background_image, (0, 0))
 
     # Draw the board
     for y in range(board_height):

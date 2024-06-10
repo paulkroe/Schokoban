@@ -91,7 +91,7 @@ class ReverseSokobanBoard:
             
             positions = Queue()
             positions.put(start)
-            component = []
+            component = [start]
             
             while not positions.empty():
                 x, y = positions.get()
@@ -183,6 +183,9 @@ class ReverseSokobanBoard:
         new_board = ReverseSokobanBoard(level=new_level, player=(new_player_x, new_player_y), steps=self.steps+1, max_steps=self.max_steps)
         NEW_NUM_BOXES = len(new_board.find_elements([Elements.BOX.value, Elements.BOX_ON_GOAL.value]))
         NEW_NUM_GOALS = len(new_board.find_elements([Elements.GOAL.value, Elements.BOX_ON_GOAL.value, Elements.PLAYER_ON_GOAL.value]))
+        if NUM_BOXES != NEW_NUM_BOXES or NUM_GOALS != NEW_NUM_GOALS:
+            print(self)
+            print(new_board)
         assert NUM_BOXES == NEW_NUM_BOXES
         assert NUM_GOALS == NEW_NUM_GOALS
         assert len(new_board.find_elements([Elements.PLAYER.value, Elements.PLAYER_ON_GOAL.value])) == 1
