@@ -8,11 +8,9 @@ def check_deadlock(board):
     if len(board.valid_moves()) == 0:
         return True
     
-    boxes = board.find_elements([Elements.BOX.value, Elements.BOX_ON_GOAL.value])
-    for box in boxes:
-        if corner_deadlock(box, board):
-            return True
-    
+    if precomputed_deadlock(board):
+        return True
+     
     if wall_deadlock(board):
         return True
     
@@ -58,12 +56,14 @@ def wall_deadlock(board):
     
     return False
 
-# checks if a box is in a corner deadlock: for example
-# #####
-# #  .#
-# #   #
-# # @$#
-# #####
+# checks if a box is in one of the precomputed deadlocks
+def precomputed_deadlock(board):
+    for box in board.find_elements([Elements.BOX.value]):
+        if board.deadlocks[box[0], box[1]] == 0:
+            return True
+    return False
+
+
 def corner_deadlock(box, board):
     # if box is on goal deadlock does not matter
     if board.level[box] == Elements.BOX_ON_GOAL.value:

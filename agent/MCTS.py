@@ -9,8 +9,8 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import game.Sokoban as Sokoban
 
-C_PUT = 32
-D_PUT = 8
+C_PUT = 32 # 8
+D_PUT = 8  # 100
 
 class Node():
     def __init__(self, parent, state, move):

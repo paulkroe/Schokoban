@@ -1,6 +1,7 @@
 from enum import Enum
 import numpy as np
 from queue import Queue
+from copy import deepcopy
 
 import sys
 import os
@@ -17,24 +18,24 @@ MAX_STEP = 1000
 
 class SokobanBoard:
     
-    def __init__(self, level_id=None, pre=None, level=None, player=None, steps=None, max_steps=MAX_STEP):
-        if not level_id is None:
-            self.level = self.load_level(level_id, pre)
-            self.player = self.find_elements([Elements.PLAYER.value, Elements.PLAYER_ON_GOAL.value])[0]
-            self.steps = 0
-        else:
-            assert not level is None
-            assert not player is None
-            assert not steps is None
-            self.level = level
-            self.player = player
-            self.steps = steps
-            
-        # TODO: make interior search more efficient
+    def __init__(self, level_id, pre, max_steps=MAX_STEP, deadlocks=None):
+        self.pre = pre
+        self.level = self.load_level(level_id, pre)
+        self.player = self.find_elements([Elements.PLAYER.value, Elements.PLAYER_ON_GOAL.value])[0]
+        self.steps = 0
+        self.level_id = level_id = level_id
         self.max_steps = max_steps
+        
         self.interior = sorted(self.find_interior(*self.player))
         self.box_positions = sorted(self.find_elements([Elements.BOX.value, Elements.BOX_ON_GOAL.value]))
         self.hash = self.get_hash()
+        self.deadlocks = deadlocks
+        if self.deadlocks is None:
+            if self.pre is None:
+                file_path = f"deadlock_detection/Microban/level_{self.level_id}.npy"
+            else:
+                file_path = f"deadlock_detection/{self.pre[:-1]}/level_{self.level_id}.npy"
+            self.deadlocks = np.load(file_path)
     
     def get_hash(self):
         return str(self.interior) + str(self.box_positions)
@@ -131,7 +132,8 @@ class SokobanBoard:
         assert new_level[new_player_x, new_player_y] in [Elements.BOX.value, Elements.BOX_ON_GOAL.value]
         new_level[new_player_x, new_player_y] = Elements.PLAYER.value if new_level[new_player_x, new_player_y] == Elements.BOX.value else Elements.PLAYER_ON_GOAL.value
         
-        new_board = SokobanBoard(level=new_level, player=(new_player_x, new_player_y), steps=self.steps+1, max_steps=self.max_steps)
+        new_board = self.construct(new_level, (new_player_x, new_player_y), self.steps + 1)
+        
         NEW_NUM_BOXES = len(new_board.find_elements([Elements.BOX.value, Elements.BOX_ON_GOAL.value]))
         NEW_NUM_GOALS = len(new_board.find_elements([Elements.GOAL.value, Elements.BOX_ON_GOAL.value, Elements.PLAYER_ON_GOAL.value]))
         assert NUM_BOXES == NEW_NUM_BOXES
@@ -139,9 +141,20 @@ class SokobanBoard:
         assert len(new_board.find_elements([Elements.PLAYER.value, Elements.PLAYER_ON_GOAL.value])) == 1
         return new_board
     
+    def construct(self, level, player, steps):
+        new_board = SokobanBoard(level_id=self.level_id, pre=self.pre, max_steps=self.max_steps, deadlocks=self.deadlocks) 
+        new_board.level = level
+        new_board.player = player
+        new_board.steps = steps
+        
+        new_board.interior = sorted(new_board.find_interior(*new_board.player))
+        new_board.box_positions = sorted(new_board.find_elements([Elements.BOX.value, Elements.BOX_ON_GOAL.value]))
+        new_board.hash = new_board.get_hash()
+        return new_board
+
     def copy(self):
-        return SokobanBoard(level=self.level.copy(), player=self.player, steps=self.steps, max_steps=self.max_steps)
-    
+        return self.construct(level=self.level.copy(), player=self.player, steps=self.steps)
+         
     def mark(self):
         interior = self.find_interior(*self.player)
         level_copy = self.level.copy()
