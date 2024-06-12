@@ -17,7 +17,6 @@ def check_deadlock(board):
     # TODO: add kernels that check for deadlocks
     return False
 
-
 # checks if a box is pushed against a wall without a goal
 # 4 sweeplines that check for boxes and goals from every direction
 # returns true if a wall deadlock is detected
@@ -62,7 +61,6 @@ def precomputed_deadlock(board):
         if board.deadlocks[box[0], box[1]] == 0:
             return True
     return False
-
 
 def corner_deadlock(box, board):
     # if box is on goal deadlock does not matter
