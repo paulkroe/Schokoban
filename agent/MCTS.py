@@ -9,8 +9,8 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import game.Sokoban as Sokoban
 
-C_PUT = 16
-D_PUT = 100
+C_PUT = 32
+D_PUT = 8
 
 class Node():
     def __init__(self, parent, state, move):
@@ -28,7 +28,7 @@ class Node():
     def u(self):
         if self.parent is None:
             return 0
-        return C_PUT * np.sqrt(2*np.log(self.parent.n)) / (1 + self.n) + np.sqrt(self.sum_of_squares / (self.n + 1) - self.q**2 + D_PUT)
+        return C_PUT * np.sqrt(2*np.log(self.parent.n)) / (self.n) + np.sqrt(self.sum_of_squares / (self.n) - self.q**2 + D_PUT)
     
     @property
     def score(self):
@@ -64,6 +64,12 @@ class Node():
     def select_child(self):
         if len(self.children) == 0:
             return None
+        
+        # if there is a unvisited node, visit that node first
+        unvisited = [child for child in self.children.values() if child.n == 0]
+        if len(unvisited) > 0:
+            return random.choice(unvisited)
+        
         best_score = max(child.score for child in self.children.values())
         best_children = [child for child in self.children.values() if child.score == best_score]
         if len(best_children) == 0:

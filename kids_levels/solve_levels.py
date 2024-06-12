@@ -29,5 +29,7 @@ for level_id in range(NUM_LEVELS):
     outcomes[level_id] = 1 if outcome == "WIN" else 0
 
 print(f"Soleved {sum(outcomes)} out of {NUM_LEVELS} levels.")
-# python3 kids_levels/solve_levels.py --num_sim=5000 --max_steps=50 --verbose=0
-# python3 kids_levels/solve_levels.py --num_sim=5000 --max_steps=50 --verbose=0 --rev=1
+'''
+python3 kids_levels/solve_levels.py --num_sim=5000 --max_steps=50 --verbose=0
+python3 kids_levels/solve_levels.py --num_sim=5000 --max_steps=50 --verbose=0 --rev=1
+'''
