@@ -35,9 +35,9 @@ class ReverseSokobanBoard:
             if self.pre is None:
                 file_path = f"deadlock_detection/Microban/level_{self.level_id}.npy"
             else:
-                file_path = f"deadlock_detection/{self.pre[:-1]}/level_{self.level_id}.npy"
+                file_path = f"deadlock_detection/{self.pre[:-1]}/level_{self.level_id}.npy" 
             self.deadlocks = np.load(file_path)
-     
+        
     def get_hash(self):
         return str(self.interior) + str(self.box_positions)
     
@@ -74,7 +74,7 @@ class ReverseSokobanBoard:
             level[x, y] = Elements.BOX.value
        
         player = self.find_elements([Elements.PLAYER.value, Elements.PLAYER_ON_GOAL.value], level)[0]
-        level[player] = Elements.FLOOR.value if level[player] == Elements.PLAYER.value else Elements.GOAL.value 
+        level[player] = Elements.FLOOR.value if level[player] == Elements.PLAYER.value else Elements.BOX.value 
         return level
     
     # find connected components (goals and floor tiles)
@@ -209,7 +209,7 @@ class ReverseSokobanBoard:
     def copy(self):
         return self.construct(level=self.level.copy(), player=self.player, steps=self.steps)
         
-    def reward(self):
+    def reward(self):     
         reward = -min_cost_matching(self)
         if len(self.find_elements(Elements.BOX.value)) == 0:
             return Reward(reward, "WIN")

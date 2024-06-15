@@ -54,7 +54,7 @@ sprites = {
     'i': load_and_scale_sprite('visualization/sprites/goal_interior.png', tile_size),
     '-': load_and_scale_sprite('visualization/sprites/arrow.png', tile_size),
     '>': load_and_scale_sprite('visualization/sprites/move_box.png', tile_size),
-    'ö': load_and_scale_sprite('visualization/sprites/arrow_flipped.png', tile_size),
+    'ö': load_and_scale_sprite('visualization/sprites/arrow_player.png', tile_size),
     'ü': load_and_scale_sprite('visualization/sprites/move_goal.png', tile_size),
     'q': load_and_scale_sprite('visualization/sprites/uparrow.png', tile_size),
     'w': load_and_scale_sprite('visualization/sprites/downarrow.png', tile_size),
@@ -62,12 +62,12 @@ sprites = {
 }
 
 board = [
-    "########",
-    "#. $$. #",
-    "#      #",
-    "#  ###*#",
-    "#@     #",
-    "########"
+    "##########",
+    "#1234#####",4
+    "#12345678#",8
+    "###123456#",6
+    "###12#####",2
+    "##########"
 ]
 board_width = len(board[0])
 board_height = len(board)

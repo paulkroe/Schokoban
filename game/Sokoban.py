@@ -15,7 +15,6 @@ MAX_STEP = 1000
 
 # negative minimum cost perfect matching (Pushing the limits: New developments in single-agent search: Technical report) 
 
-
 class SokobanBoard:
     
     def __init__(self, level_id, pre, max_steps=MAX_STEP, deadlocks=None):
@@ -23,12 +22,13 @@ class SokobanBoard:
         self.level = self.load_level(level_id, pre)
         self.player = self.find_elements([Elements.PLAYER.value, Elements.PLAYER_ON_GOAL.value])[0]
         self.steps = 0
-        self.level_id = level_id = level_id
+        self.level_id = level_id
         self.max_steps = max_steps
         
         self.interior = sorted(self.find_interior(*self.player))
         self.box_positions = sorted(self.find_elements([Elements.BOX.value, Elements.BOX_ON_GOAL.value]))
         self.hash = self.get_hash()
+        
         self.deadlocks = deadlocks
         if self.deadlocks is None:
             if self.pre is None:

@@ -6,7 +6,7 @@ from game.GameElements import Elements, char_to_element, element_to_char
 from game.ReverseSokoban import ReverseSokobanBoard
 from queue import Queue
 
-PRE = "kids_"
+PRE = None
 
 if PRE is not None:
     path = f"{PRE}levels"
@@ -79,7 +79,7 @@ def mark(goal, positions, level_id):
             while not q.empty():
                 board = q.get()
                 for move in board.valid_moves():
-                    new_board = board.move(*move)
+                    new_board = board.move(*move) # pull the boxes
                     if not new_board.hash in hashes:
                         hashes.append(new_board.hash)
                         positions[new_board.find_elements([Elements.BOX.value, Elements.BOX_ON_GOAL.value])[0]] = 1

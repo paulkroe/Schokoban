@@ -10,8 +10,6 @@ from game.GameElements import Elements
 def min_cost_matching(board):
     boxes = board.find_elements([Elements.BOX.value])
     goals = board.find_elements([Elements.GOAL.value, Elements.PLAYER_ON_GOAL.value])
-    if len(boxes) != len(goals):
-        print(board)
     assert len(boxes) == len(goals)
     n = len(boxes)
     if n == 0:
