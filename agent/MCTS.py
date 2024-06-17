@@ -43,11 +43,11 @@ class Node():
         if self.parent:
             self.parent.update(value, max_value)
             
-    def expand_node(self, valid_moves, hashes):
+    def expand_node(self, valid_moves, hashes, del_nodes):
         hashes_copy = deepcopy(hashes)
         for move in valid_moves:
             new_state = self.state.move(*move)
-            if new_state.hash in hashes_copy:
+            if new_state.hash in hashes_copy or new_state.hash in del_nodes:
                 continue
             else:
                 child_node = Node(state=new_state, parent=self, move=move)
@@ -57,9 +57,9 @@ class Node():
         # important that this is not done in one loop
         for move in valid_moves:
             if move in self.children: # could be that child caused cycle and thus was not added
-                if self.children[move].reward.get_type() == "LOSS":
+                if self.children[move].reward.get_type() == "LOSS" or self.children[move] in del_nodes:
                     assert self.children[move].should_remove()
-                    self.children[move].remove()
+                    self.children[move].remove(del_nodes)
 
     def select_child(self):
         if len(self.children) == 0:
@@ -72,12 +72,6 @@ class Node():
         
         best_score = max(child.score for child in self.children.values())
         best_children = [child for child in self.children.values() if child.score == best_score]
-        if len(best_children) == 0:
-            print("best_score", best_score)
-            print([child.score for child in self.children.values()])
-            print("children", self.children)
-            visualize(self)
-            assert 0
         return random.choice(best_children) # break ties randomly
 
     def select_move(self):
@@ -104,20 +98,23 @@ class Node():
         if len(self.children) == 0 and not (self.reward.get_type() == "WIN"):
             return True
         
-    def remove(self):
+    def remove(self, del_nodes):
+        del_nodes.add(self.state.hash)
         assert len(self.children) == 0
         parent = self.parent
         if not parent is None:
             del parent.children[self.move]
-            if parent.should_remove():
-                parent.remove() 
+            if parent.should_remove() or parent in del_nodes:
+                parent.remove(del_nodes) 
         del self
+        
     def __del__(self):
         pass
     
 class MCTS():
     def __init__(self, sokobanboard):
         self.root = Node(parent=None, state=sokobanboard, move=None)
+        self.del_nodes = set()
          
     def select_leaf(self, node, hashes):
         while len(node.children) != 0 and node.reward.get_type() == "STEP":
@@ -128,10 +125,9 @@ class MCTS():
         return node
     
     def expand(self, node, hashes):
-        node.expand_node(node.state.valid_moves(), hashes)
+        node.expand_node(node.state.valid_moves(), hashes, self.del_nodes)
                 
     def run(self, simulations, visualize=False):
-        
         for _ in range(simulations):
             hashes = [self.root.state.hash]
 
@@ -158,7 +154,6 @@ class MCTS():
                     reward = node.rollout(hashes)
                     # backpropagate rollout value
                     node.update(reward.get_value(), reward)
-                
         if visualize:
             self.visualize()
             
