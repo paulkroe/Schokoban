@@ -128,21 +128,37 @@ class MCTS():
         return node
     
     def expand(self, node, hashes):
-        if node.reward.get_type() != "STEP":
-            node.update(node.reward.get_value(), node.reward)   
-        else:
-            reward = node.rollout(hashes)
-            node.update(reward.get_value(), reward)
-            node.expand_node(node.state.valid_moves(), hashes)
+        node.expand_node(node.state.valid_moves(), hashes)
                 
     def run(self, simulations, visualize=False):
         
         for _ in range(simulations):
             hashes = [self.root.state.hash]
+
+            # selection phase
             node = self.select_leaf(self.root, hashes)
+            # if all states have been explored and there is no solution, None will be returned during the selection phase
             if node is None:
                 return None
-            self.expand(node, hashes)
+            # rollout
+            if node.n == 0:
+                # random rollout
+                reward = node.rollout(hashes)
+                # backpropagate rollout value
+                node.update(reward.get_value(), reward)
+            # expansion phase
+            else:
+                # expand node
+                self.expand(node, hashes)
+                # it might be that all children have already been removed from the tree again and the node removed, for example if the child was a loss
+                if len(node.children):
+                # pick on chlid at random for simulation
+                    node = random.choice(list(node.children.values()))
+                    # rollout
+                    reward = node.rollout(hashes)
+                    # backpropagate rollout value
+                    node.update(reward.get_value(), reward)
+                
         if visualize:
             self.visualize()
             
