@@ -1,4 +1,5 @@
 import numpy as np
+import math
 from graphviz import Digraph
 from queue import Queue
 import random
@@ -10,7 +11,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import game.Sokoban as Sokoban
 
 C_PUT = 32 # 8
-D_PUT = 8  # 100
+D_PUT = 10000  # 100
 LOOKAHEAD = 7
 
 class Node():
@@ -44,27 +45,102 @@ class Node():
             self.max_value = max_value
         if self.parent:
             self.parent.update(value, max_value) 
-       
+    
+    def update_depth(self, depth):
+        self.depth = depth
+        self.state.steps = depth
+        for child in self.children.values():
+            child.update_depth(depth+1)
+    
+    def upgrade(self, n, value, sum_of_squares):
+        self.n += n
+        self.q = (self.q * (self.n-n) + value*n) / (self.n)
+        self.sum_of_squares += sum_of_squares
+        if len(self.children) != 0:
+            max_values = [child.max_value.get_value() for child in self.children.values()]
+            best_value = max(max_values)
+            for child in self.children.values():
+                if child.max_value.get_value() == best_value:
+                    child.max_value = child.max_value 
+        else:
+            self.max_value = self.reward
+        if self.parent:
+            self.parent.upgrade(n, value, sum_of_squares)
+    
+    def downgrade(self, n, value, sum_of_squares):
+        self.n -= n
+        self.q = (self.q * (self.n+n) - value*n) / (self.n)
+        self.sum_of_squares -= sum_of_squares
+        if len(self.children) != 0:
+            max_values = [child.max_value.get_value() for child in self.children.values()]
+            best_value = max(max_values)
+            for child in self.children.values():
+                if child.max_value.get_value() == best_value:
+                    child.max_value = child.max_value
+        else:
+            self.max_value = self.reward
+        if math.isnan(self.score):
+            print(self.q)
+            print(self.n)
+            print(self.sum_of_squares)
+            print(self.state)
+            print("nan")
+            assert 0
+        
+        if self.parent:
+            self.parent.downgrade(n, value, sum_of_squares)
+           
+    
     def expand_node(self, valid_moves, mcts):
-        added = 0
         for move in valid_moves:
             new_state = self.state.move(*move)
             new_hash = new_state.hash
             if not (new_hash in mcts.del_nodes or new_hash in mcts.nodes):
                 child_node = Node(state=new_state, parent=self, move=move, depth=self.depth+1)
-                added += 1
                 self.children[move] = child_node
                 mcts.nodes[new_hash] = child_node
-                            
+            elif new_hash in mcts.nodes and self.depth+1 < mcts.nodes[new_hash].depth:
+                self.children[move] = mcts.nodes[new_hash]
+                del mcts.nodes[new_hash].parent.children[mcts.nodes[new_hash].move]
+                # try to delete parent node if it has no children
+                n = mcts.nodes[new_hash].n
+                value = mcts.nodes[new_hash].q
+                sum_of_squares = mcts.nodes[new_hash].sum_of_squares
+
+                N = mcts.root.n
+                V = mcts.root.q
+                S = mcts.root.sum_of_squares
+                # downgrade old parent
+                mcts.nodes[new_hash].parent.downgrade(n, value, sum_of_squares)
+                
+                if mcts.nodes[new_hash].parent.should_remove():
+                    mcts.nodes[new_hash].parent.remove(mcts)
+                
+                mcts.nodes[new_hash].parent = self
+                mcts.nodes[new_hash].move = move
+             
+                # recursively update the depth of the children
+                mcts.nodes[new_hash].update_depth(self.depth+1)
+
+                
+                # upgrade new parent
+                self.upgrade(n, value, sum_of_squares)
+                
+                assert N == mcts.root.n
+                assert S == mcts.root.sum_of_squares
+                if abs(V - mcts.root.q) > 0.0001:
+                    print(V)
+                    print(mcts.root.q)
+                    assert 0
+                # assert 0
         # important that this is not done in one loop
         for move in valid_moves:
             if move in self.children: # could be that child caused cycle and thus was not added
                 if self.children[move].reward.get_type() == "LOSS" or self.children[move] in mcts.del_nodes:
                     assert self.children[move].should_remove()
                     self.children[move].remove(mcts)
-        
-        if added == 0:
-            assert self.should_remove() and (not self in mcts.del_nodes) #TODO: fix 
+           
+        if self.should_remove() and (not self.state.hash in mcts.del_nodes):
             self.remove(mcts)
         
          
@@ -78,7 +154,11 @@ class Node():
             return random.choice(unvisited)
         
         best_score = max(child.score for child in self.children.values())
-        best_children = [child for child in self.children.values() if child.score == best_score] 
+        best_children = [child for child in self.children.values() if child.score == best_score]
+        if len(best_children) == 0:
+            print(best_score)
+            # check if best_score is nan
+            
         return random.choice(best_children) # break ties randomly
 
     def select_move(self):
@@ -90,43 +170,22 @@ class Node():
             return random.choice(best_children).move # break ties randomly
     
     def rollout(self):
-        # perform bfs starting from current state until a depth of LOOKAHEAD and return maximal achieved reward
-        state = self.state.copy()
-        max_reward = state.reward()
-        visited = set(state.hash)
-        q = Queue()
-        q.put((state, 0))
-        while not q.empty():
-            state, depth = q.get()
-            if depth == LOOKAHEAD:
-                break
-            for move in state.valid_moves():
-                new_state = state.move(*move)
-                if new_state.reward().get_type() == "WIN":
-                    return new_state.reward()
-                if new_state.reward().get_type() == "STEP":
-                    if new_state.hash not in visited:
-                        visited.add(new_state.hash)
-                        reward = new_state.reward()
-                        if reward.get_value() > max_reward.get_value():
-                            max_reward = reward
-                        q.put((new_state, depth+1))
-        return max_reward
+        return self.reward
     
     def should_remove(self):
         return len(self.children) == 0 and not (self.max_value.get_type() == "WIN")
         
     def remove(self, mcts):
         mcts.del_nodes.add(self.state.hash)
+        if self.state.hash == mcts.root.state.hash: # if the rot node is deleted, the level can't be solveds
+            return
         del mcts.nodes[self.state.hash]
         assert len(self.children) == 0
         parent = self.parent
         if not parent is None:
             del parent.children[self.move]
             if parent.should_remove() or parent in mcts.del_nodes:
-                parent.remove(mcts) 
-        
-    
+                parent.remove(mcts)
     
 class MCTS():
     def __init__(self, sokobanboard):
@@ -147,10 +206,8 @@ class MCTS():
                 
     def run(self, simulations, visualize=False):
         for i in range(simulations):
-            if i == 2000:
-                self.visualize()
-                assert 0
-            # print(f"Simulation {i+1}, {len(self.nodes)} nodes, {len(self.del_nodes)} deleted nodes", end="\r")
+            
+            print(f"Simulation {i+1}, {len(self.nodes)} nodes, {len(self.del_nodes)} deleted nodes", end="\r")
             # selection phase
             node = self.select_leaf(self.root)
             # if all states have been explored and there is no solution, None will be returned during the selection phase
@@ -177,7 +234,7 @@ class MCTS():
                     node.update(reward.get_value(), reward)
             if self.root.max_value.get_type() == "WIN":
                 break
-                
+                    
         if visualize:
             self.visualize()
             

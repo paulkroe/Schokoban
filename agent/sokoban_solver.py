@@ -38,20 +38,18 @@ class Solver():
             
             
             self.print(board, verbose)
-            for _ in range(max_steps):
-                tree = MCTS.MCTS(board)
-                moves = tree.run(num_sims, visualize=False)
-                for move in moves:
-                    board = board.move(*move)
-                    if board.reward().get_type() != "STEP":  
-                        self.print("==========", verbose)
-                        self.print(board, verbose)
-                        self.print(board.reward().get_type(), verbose)
-                        outcome = board.reward().get_type()
-                        if outcome == "WIN":
-                            assert len(board.find_elements(Sokoban.Elements.BOX.value)) == 0       
-                        return board.reward().get_type()
+            tree = MCTS.MCTS(board)
+            moves = tree.run(num_sims, visualize=False)
+            for move in moves:
+                board = board.move(*move)
+                if board.reward().get_type() != "STEP":  
                     self.print("==========", verbose)
                     self.print(board, verbose)
-                
+                    self.print(board.reward().get_type(), verbose)
+                    outcome = board.reward().get_type()
+                    if outcome == "WIN":
+                        assert len(board.find_elements(Sokoban.Elements.BOX.value)) == 0       
+                    return board.reward().get_type()
+                self.print("==========", verbose)
+                self.print(board, verbose)
         return "LOSS"
