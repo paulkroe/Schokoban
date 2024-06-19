@@ -1,7 +1,6 @@
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import agent.MCTS as MCTS
 import game.Sokoban as Sokoban
 
 class Solver():
@@ -12,9 +11,14 @@ class Solver():
         if verbose == 1:
             print(string)            
     
-    def solve(self, level_id, pre, num_sims, max_steps, verbose=0):
+    def solve(self, level_id, folder, num_sims, max_steps, verbose=0, mode="afterstates"):
+        if mode == "afterstates":
+            import agent.MCTS as MCTS
+        else:
+            import agent.MCTS_vanilla as MCTS
+            
         self.print("Solving Sokoban", verbose)
-        board = Sokoban.SokobanBoard(level_id=level_id, pre=pre, max_steps=max_steps)
+        board = Sokoban.SokobanBoard(level_id=level_id, folder=folder, max_steps=max_steps)
     
         self.print(board, verbose)
         tree = MCTS.MCTS(board)

@@ -3,12 +3,10 @@ import math
 from graphviz import Digraph
 from queue import Queue
 import random
-from copy import deepcopy
 
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import game.Sokoban as Sokoban
 
 C_PUT = 32 # 8
 D_PUT = 10000  # 100

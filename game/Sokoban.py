@@ -17,9 +17,10 @@ MAX_STEP = 1000
 
 class SokobanBoard:
     
-    def __init__(self, level_id, pre, max_steps=MAX_STEP, deadlocks=None):
-        self.pre = pre
-        self.level = self.load_level(level_id, pre)
+    def __init__(self, level_id, max_steps=MAX_STEP, deadlocks=None, folder=None):
+        path = folder+"/level_"+str(level_id)+".txt"
+        self.folder = folder
+        self.level = self.load_level(path) 
         self.player = self.find_elements([Elements.PLAYER.value, Elements.PLAYER_ON_GOAL.value])[0]
         self.steps = 0
         self.level_id = level_id
@@ -30,21 +31,15 @@ class SokobanBoard:
         self.hash = self.get_hash()
         
         self.deadlocks = deadlocks
+        
         if self.deadlocks is None:
-            if self.pre is None:
-                file_path = f"deadlock_detection/Microban/level_{self.level_id}.npy"
-            else:
-                file_path = f"deadlock_detection/{self.pre[:-1]}/level_{self.level_id}.npy"
+            file_path = "deadlock_detection/"+folder+"level_"+str(level_id)+".npy"
             self.deadlocks = np.load(file_path)
     
     def get_hash(self):
         return str(self.interior) + str(self.box_positions)
     
-    def load_level(self, level_id, pre=None):
-        if pre is not None:
-            path = f"{pre}levels/level_{level_id}.txt"
-        else:
-            path = f"levels/level_{level_id}.txt"
+    def load_level(self, path):
         with open(path) as f:
             lines = f.readlines()
             height = len(lines)
@@ -142,7 +137,7 @@ class SokobanBoard:
         return new_board
     
     def construct(self, level, player, steps):
-        new_board = SokobanBoard(level_id=self.level_id, pre=self.pre, max_steps=self.max_steps, deadlocks=self.deadlocks) 
+        new_board = SokobanBoard(level_id=self.level_id, folder=self.folder, max_steps=self.max_steps, deadlocks=self.deadlocks) 
         new_board.level = level
         new_board.player = player
         new_board.steps = steps
