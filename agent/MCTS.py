@@ -8,8 +8,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-C_PUT = 32 # 8
-D_PUT = 10000  # 100
+C_PUT = 8 # 8
 LOOKAHEAD = 7
 
 class Node():
@@ -23,13 +22,12 @@ class Node():
         self.n = 0
         self.reward = self.state.reward()
         self.max_value = self.reward
-        self.sum_of_squares = self.reward.get_value()**2
         
     @property
     def u(self):
         if self.parent is None:
             return 0
-        return C_PUT * np.sqrt(2*np.log(self.parent.n)) / (self.n) + np.sqrt(self.sum_of_squares / (self.n) - self.q**2 + D_PUT)
+        return C_PUT * np.sqrt(2*np.log(self.parent.n)) / (self.n)
     
     @property
     def score(self):
@@ -38,7 +36,6 @@ class Node():
     def update(self, value, max_value):
         self.q = (self.q * self.n + value) / (self.n + 1)
         self.n += 1
-        self.sum_of_squares = self.sum_of_squares + value**2
         if self.max_value.get_value() < max_value.get_value():
             self.max_value = max_value
         if self.parent:
@@ -50,10 +47,9 @@ class Node():
         for child in self.children.values():
             child.update_depth(depth+1)
     
-    def upgrade(self, n, value, sum_of_squares):
+    def upgrade(self, n, value):
         self.n += n
         self.q = (self.q * (self.n-n) + value*n) / (self.n)
-        self.sum_of_squares += sum_of_squares
         if len(self.children) != 0:
             max_values = [child.max_value.get_value() for child in self.children.values()]
             best_value = max(max_values)
@@ -63,12 +59,11 @@ class Node():
         else:
             self.max_value = self.reward
         if self.parent:
-            self.parent.upgrade(n, value, sum_of_squares)
+            self.parent.upgrade(n, value)
     
-    def downgrade(self, n, value, sum_of_squares):
+    def downgrade(self, n, value):
         self.n -= n
         self.q = (self.q * (self.n+n) - value*n) / (self.n)
-        self.sum_of_squares -= sum_of_squares
         if len(self.children) != 0:
             max_values = [child.max_value.get_value() for child in self.children.values()]
             best_value = max(max_values)
@@ -80,13 +75,12 @@ class Node():
         if math.isnan(self.score):
             print(self.q)
             print(self.n)
-            print(self.sum_of_squares)
             print(self.state)
             print("nan")
             assert 0
         
         if self.parent:
-            self.parent.downgrade(n, value, sum_of_squares)
+            self.parent.downgrade(n, value)
            
     
     def expand_node(self, valid_moves, mcts):
@@ -103,13 +97,11 @@ class Node():
                 # try to delete parent node if it has no children
                 n = mcts.nodes[new_hash].n
                 value = mcts.nodes[new_hash].q
-                sum_of_squares = mcts.nodes[new_hash].sum_of_squares
 
                 N = mcts.root.n
                 V = mcts.root.q
-                S = mcts.root.sum_of_squares
                 # downgrade old parent
-                mcts.nodes[new_hash].parent.downgrade(n, value, sum_of_squares)
+                mcts.nodes[new_hash].parent.downgrade(n, value)
                 
                 if mcts.nodes[new_hash].parent.should_remove():
                     mcts.nodes[new_hash].parent.remove(mcts)
@@ -122,10 +114,9 @@ class Node():
 
                 
                 # upgrade new parent
-                self.upgrade(n, value, sum_of_squares)
+                self.upgrade(n, value)
                 
                 assert N == mcts.root.n
-                assert S == mcts.root.sum_of_squares
                 if abs(V - mcts.root.q) > 0.0001:
                     print(V)
                     print(mcts.root.q)

@@ -6,11 +6,6 @@ from game.GameElements import Elements, char_to_element
 from game.ReverseSokoban import ReverseSokobanBoard
 from queue import Queue
 import argparse
-parser = argparse.ArgumentParser(description='Sokoban Solver')
-parser.add_argument('--folder', type=str, default="afterstates", help='prefix foldername')
-parser.add_argument('--level_id', type=int, default=-1, help='level id, if -1 then all levels are computed')
-args = parser.parse_args()
-
 
 
 def load_level(level_id, path):
@@ -109,6 +104,10 @@ def compute_deadlocks(level_id, path, verbose=0):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Sokoban Solver')
+    parser.add_argument('--folder', type=str, default="afterstates", help='prefix foldername')
+    parser.add_argument('--level_id', type=int, default=-1, help='level id, if -1 then all levels are computed')
+    args = parser.parse_args()
     files = os.listdir(args.folder)
     level_files = [file for file in files if file.startswith('level')]
     NUM_LEVELS = len(level_files)

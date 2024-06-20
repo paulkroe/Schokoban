@@ -8,8 +8,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-C_PUT = 32 # 8
-D_PUT = 8  # 100
+C_PUT = 8 # 8
 
 class Node():
     def __init__(self, parent, state, move):
@@ -21,13 +20,12 @@ class Node():
         self.n = 0
         self.reward = self.state.reward()
         self.max_value = self.reward
-        self.sum_of_squares = self.reward.get_value()**2
         
     @property
     def u(self):
         if self.parent is None:
             return 0
-        return C_PUT * np.sqrt(2*np.log(self.parent.n)) / (self.n) + np.sqrt(self.sum_of_squares / (self.n) - self.q**2 + D_PUT)
+        return C_PUT * np.sqrt(2*np.log(self.parent.n)) / (self.n)
     
     @property
     def score(self):
@@ -36,7 +34,6 @@ class Node():
     def update(self, value, max_value):
         self.q = (self.q * self.n + value) / (self.n + 1)
         self.n += 1
-        self.sum_of_squares = self.sum_of_squares + value**2
         if self.max_value.get_value() < max_value.get_value():
             self.max_value = max_value
         if self.parent:

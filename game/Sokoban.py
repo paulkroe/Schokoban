@@ -35,7 +35,7 @@ class SokobanBoard:
         
         if self.deadlocks is None:
             file_path = "deadlock_detection/"+folder+"level_"+str(level_id)+".npy"
-            if not os.path.isfile(file_path) or path not in ["Microban/", "Testsuite/"]:
+            if not os.path.isfile(file_path) or not (folder in ["Microban/", "Testsuite/"]):
                 compute_deadlocks(level_id, folder, verbose=0)
             self.deadlocks = np.load(file_path)
     
