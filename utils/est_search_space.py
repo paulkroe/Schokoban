@@ -45,47 +45,49 @@ def calculate_tiles(path):
     # return number of ones in board
     return np.sum(board)
 
-# calculate search space complexity for kids levels
-folder_path = 'kids_levels/'
-files = os.listdir(folder_path)
-level_files = [file for file in files if file.startswith('level')]
-NUM_LEVELS = len(level_files)
+if __name__ == "__main__":
 
-comp = []
-for i in range(1, NUM_LEVELS+1):
+    # calculate search space complexity for kids levels
+    folder_path = 'Testsuite/'
+    files = os.listdir(folder_path)
+    level_files = [file for file in files if file.startswith('level')]
+    NUM_LEVELS = len(level_files)
+
+    comp = []
+    for i in range(1, NUM_LEVELS+1):
+        
+        path = folder_path + f"/level_{i}.txt"
+        n, b = count_boxes(path)
+        path = f"deadlock_detection/" + folder_path + f"level_{i}.npy"
+        p = calculate_tiles(path) # number of tiles that don't immediately lead to deadlocks
+        comp.append([n, int(p), b, int(comb(p, b)*(n-b))])
     
-    path = f"kids_levels/level_{i}.txt"
-    n, b = count_boxes(path)
-    path = f"deadlock_detection/kids/level_{i}.npy"
-    p = calculate_tiles(path) # number of tiles that don't immediately lead to deadlocks
-    comp.append([n, int(p), b, int(comb(p, b)*(n-b))])
- 
-# save results as csv
-with open('utils/kids_search_space_comp.csv', 'w', newline='') as file:
-    writer = csv.writer(file)
-    writer.writerow(['tiles', 'non freezing tiles', 'stones', 'search space size'])
-    for values in comp:
-        writer.writerow(values)
-  
-
-# calculate search space complexity for Mircoban levels
-folder_path = 'levels/'
-files = os.listdir(folder_path)
-level_files = [file for file in files if file.startswith('level')]
-NUM_LEVELS = len(level_files)
-
-comp = []
-for i in range(1, NUM_LEVELS+1):
+    # save results as csv
+    with open('utils/Testsuite_search_space_comp.csv', 'w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(['tiles', 'non freezing tiles', 'stones', 'search space size'])
+        for values in comp:
+            writer.writerow(values)
     
-    path = f"levels/level_{i}.txt"
-    n, b = count_boxes(path)
-    path = f"deadlock_detection/Microban/level_{i}.npy"
-    p = calculate_tiles(path) # number of tiles that don't immediately lead to deadlocks
-    comp.append([n, int(p), b, int(comb(p, b)*(n-b))])
 
-# save results as csv
-with open('utils/Microban_search_space_comp.csv', 'w', newline='') as file:
-    writer = csv.writer(file)
-    writer.writerow(['tiles', 'non freezing tiles', 'stones', 'search space size'])
-    for values in comp:
-        writer.writerow(values)
+    # calculate search space complexity for Mircoban levels
+    folder_path = 'Microban/'
+    files = os.listdir(folder_path)
+    level_files = [file for file in files if file.startswith('level')]
+    NUM_LEVELS = len(level_files)
+
+    comp = []
+    for i in range(1, NUM_LEVELS+1):
+        
+        path = folder_path + f"level_{i}.txt"
+        n, b = count_boxes(path)
+        path = f"deadlock_detection/" + folder_path + f"level_{i}.npy"
+        p = calculate_tiles(path) # number of tiles that don't immediately lead to deadlocks
+        comp.append([n, int(p), b, int(comb(p, b)*(n-b))])
+
+    # save results as csv
+    with open('utils/Microban_search_space_comp.csv', 'w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(['tiles', 'non freezing tiles', 'stones', 'search space size'])
+        for values in comp:
+            writer.writerow(values)

@@ -2,13 +2,16 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import game.Sokoban as Sokoban
+from deadlock_detection.precompute_deadlocks import compute_deadlocks
+from utils.est_search_space import count_boxes, calculate_tiles
+from scipy.special import comb
 
 class Solver():
     def __init__(self):
         pass
     
     def print(self, string, verbose):
-        if verbose == 1:
+        if verbose >= 2:
             print(string)            
     
     def solve(self, level_id, folder, num_sims, max_steps, verbose=0, mode="afterstates"):
@@ -16,8 +19,22 @@ class Solver():
             import agent.MCTS as MCTS
         else:
             import agent.MCTS_vanilla as MCTS
+        
+        file_path = "deadlock_detection/"+folder+"level_"+str(level_id)+".npy"
+        
+        if not os.path.isfile(file_path) or not (folder in ["Microban/", "Testsuite/"]):
+            compute_deadlocks(level_id, folder, verbose=0)
+            
+
+        if verbose >= 1:
+            path = folder + f"level_{level_id}.txt"
+            n, b = count_boxes(path)
+            path = f"deadlock_detection/" + folder + f"level_{level_id}.npy"
+            p = calculate_tiles(path)
+            print("Estimated Search Space Size: ", int(comb(p, b)*(n-b)))
             
         self.print("Solving Sokoban", verbose)
+        
         board = Sokoban.SokobanBoard(level_id=level_id, folder=folder, max_steps=max_steps)
     
         self.print(board, verbose)
