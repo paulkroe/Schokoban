@@ -2,22 +2,18 @@ import sys
 import os
 import numpy as np
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from game.GameElements import Elements, char_to_element, element_to_char
+from game.GameElements import Elements, char_to_element
 from game.ReverseSokoban import ReverseSokobanBoard
 from queue import Queue
+import argparse
+parser = argparse.ArgumentParser(description='Sokoban Solver')
+parser.add_argument('--folder', type=str, default="afterstates", help='prefix foldername')
+parser.add_argument('--level_id', type=int, default=-1, help='level id, if -1 then all levels are computed')
+args = parser.parse_args()
 
-PRE = None
 
-if PRE is not None:
-    path = f"{PRE}levels"
-else:
-    path = "levels"
 
-files = os.listdir(path)
-level_files = [file for file in files if file.startswith('level')]
-NUM_LEVELS = len(level_files)
-
-def load_level(level_id):
+def load_level(level_id, path):
     with open(path+f"/level_{level_id}.txt") as f:
         lines = f.readlines()
         height = len(lines)
@@ -51,10 +47,10 @@ def clear(board):
     interior = (board.level != Elements.WALL.value).astype(int) * Elements.FLOOR.value
     board.level = mask + interior
 
-def mark(goal, positions, level_id):
+def mark(goal, positions, level_id, path):
     hashes = []
     for (dx, dy) in [(-1, 0), (0, 1), (1, 0), (0, -1)]:
-        board = ReverseSokobanBoard(level_id, pre=PRE)
+        board = ReverseSokobanBoard(level_id, folder=path)
         player = goal[0] + dx, goal[1] + dy
         if board.level[player] == Elements.WALL.value:
             continue
@@ -85,26 +81,22 @@ def mark(goal, positions, level_id):
                         positions[new_board.find_elements([Elements.BOX.value, Elements.BOX_ON_GOAL.value])[0]] = 1
                         q.put(new_board)
 # save the np.array positions
-def save_deadlocks(level_id, positions):
-    if PRE is None:
-        file_path = f"deadlock_detection/Microban/level_{level_id}"
-    else:
-        file_path = f"deadlock_detection/{PRE[:-1]}/level_{level_id}"
-    
+def save_deadlocks(level_id, positions, path):
+    file_path = "deadlock_detection/" + path + "/level_" + str(level_id) + ".npy"
     np.save(file_path, positions)
 
-def compute_deadlocks(level_id, verbose=0):
+def compute_deadlocks(level_id, path, verbose=0):
     print("Computing deadlocks for level", level_id)
-    level = load_level(level_id)
+    level = load_level(level_id, path)
     
     goals = find_elements(level, [Elements.GOAL.value, Elements.BOX_ON_GOAL.value, Elements.PLAYER_ON_GOAL.value])
     
     positions = np.zeros(level.shape)
     for goal in goals:
-        mark(goal, positions, level_id)
+        mark(goal, positions, level_id, path)
     
     if verbose:
-        deadlocks = ReverseSokobanBoard(level_id, pre=PRE)
+        deadlocks = ReverseSokobanBoard(level_id, folder=path)
         clear(deadlocks)
         print(deadlocks)
         for i in range(level.shape[0]):
@@ -112,8 +104,17 @@ def compute_deadlocks(level_id, verbose=0):
                 if positions[i, j]:
                     deadlocks.level[i, j] = Elements.BOX.value
         print(deadlocks) 
-    save_deadlocks(level_id, positions)
+    save_deadlocks(level_id, positions, path)
     return
 
-for i in range(1, NUM_LEVELS+1):
-    compute_deadlocks(i, verbose=0)
+
+if __name__ == "__main__":
+    files = os.listdir(args.folder)
+    level_files = [file for file in files if file.startswith('level')]
+    NUM_LEVELS = len(level_files)
+
+    if args.level_id != -1:
+        compute_deadlocks(args.level_id, args.folder, verbose=0)
+    else:
+        for i in range(1, NUM_LEVELS+1):
+            compute_deadlocks(i, args.folder, verbose=0)
