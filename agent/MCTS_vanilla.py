@@ -7,8 +7,10 @@ from copy import deepcopy
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import game.Sokoban as Sokoban
 
-C_PUT = 8 # 8
+C_PUT = 32 # 8
+D_PUT = 8  # 100
 
 class Node():
     def __init__(self, parent, state, move):
@@ -20,12 +22,13 @@ class Node():
         self.n = 0
         self.reward = self.state.reward()
         self.max_value = self.reward
+        self.sum_of_squares = self.reward.get_value()**2
         
     @property
     def u(self):
         if self.parent is None:
             return 0
-        return C_PUT * np.sqrt(2*np.log(self.parent.n)) / (self.n)
+        return C_PUT * np.sqrt(2*np.log(self.parent.n)) / (self.n) + np.sqrt(self.sum_of_squares / (self.n) - self.q**2 + D_PUT)
     
     @property
     def score(self):
@@ -34,16 +37,17 @@ class Node():
     def update(self, value, max_value):
         self.q = (self.q * self.n + value) / (self.n + 1)
         self.n += 1
+        self.sum_of_squares = self.sum_of_squares + value**2
         if self.max_value.get_value() < max_value.get_value():
             self.max_value = max_value
         if self.parent:
             self.parent.update(value, max_value)
             
-    def expand_node(self, valid_moves, hashes, del_nodes):
+    def expand_node(self, valid_moves, hashes):
         hashes_copy = deepcopy(hashes)
         for move in valid_moves:
             new_state = self.state.move(*move)
-            if new_state.hash in hashes_copy or new_state.hash in del_nodes:
+            if new_state.hash in hashes_copy:
                 continue
             else:
                 child_node = Node(state=new_state, parent=self, move=move)
@@ -53,9 +57,9 @@ class Node():
         # important that this is not done in one loop
         for move in valid_moves:
             if move in self.children: # could be that child caused cycle and thus was not added
-                if self.children[move].reward.get_type() == "LOSS" or self.children[move] in del_nodes:
+                if self.children[move].reward.get_type() == "LOSS":
                     assert self.children[move].should_remove()
-                    self.children[move].remove(del_nodes)
+                    self.children[move].remove()
 
     def select_child(self):
         if len(self.children) == 0:
@@ -68,6 +72,12 @@ class Node():
         
         best_score = max(child.score for child in self.children.values())
         best_children = [child for child in self.children.values() if child.score == best_score]
+        if len(best_children) == 0:
+            print("best_score", best_score)
+            print([child.score for child in self.children.values()])
+            print("children", self.children)
+            visualize(self)
+            assert 0
         return random.choice(best_children) # break ties randomly
 
     def select_move(self):
@@ -78,39 +88,27 @@ class Node():
             best_children = [child for child in self.children.values() if child.max_value.get_value() == best_value]
             return random.choice(best_children).move # break ties randomly
     
-    def rollout(self, hashes):
-        hashes_copy = deepcopy(hashes)
-        state = self.state.copy()
-        r = state.reward()
-        while state.reward().get_type() == "STEP":
-            state = state.move(*random.choice(state.valid_moves()))
-            if state.hash in hashes_copy:
-                break
-            hashes_copy.append(state.hash)
-            r = state.reward()
-        return r
+    def rollout(self):
+        return self.reward
     
     def should_remove(self):
         if len(self.children) == 0 and not (self.reward.get_type() == "WIN"):
             return True
         
-    def remove(self, del_nodes):
-        del_nodes.add(self.state.hash)
+    def remove(self):
         assert len(self.children) == 0
         parent = self.parent
         if not parent is None:
             del parent.children[self.move]
-            if parent.should_remove() or parent in del_nodes:
-                parent.remove(del_nodes) 
+            if parent.should_remove():
+                parent.remove() 
         del self
-        
     def __del__(self):
         pass
     
 class MCTS():
     def __init__(self, sokobanboard):
         self.root = Node(parent=None, state=sokobanboard, move=None)
-        self.del_nodes = set()
          
     def select_leaf(self, node, hashes):
         while len(node.children) != 0 and node.reward.get_type() == "STEP":
@@ -121,13 +119,15 @@ class MCTS():
         return node
     
     def expand(self, node, hashes):
-        node.expand_node(node.state.valid_moves(), hashes, self.del_nodes)
+        node.expand_node(node.state.valid_moves(), hashes)
                 
-    def run(self, simulations, visualize=False):
+    def run(self, simulations, visualize=False, verbose=0):
+        
         for i in range(simulations):
-            print(f"Simulation {i+1}", end="\r")
+            if verbose > 0:
+                print(f"Simulation: {i}", end="\r")
             hashes = [self.root.state.hash]
-
+            
             # selection phase
             node = self.select_leaf(self.root, hashes)
             # if all states have been explored and there is no solution, None will be returned during the selection phase
@@ -136,7 +136,7 @@ class MCTS():
             # rollout
             if node.n == 0:
                 # random rollout
-                reward = node.rollout(hashes)
+                reward = node.rollout()
                 # backpropagate rollout value
                 node.update(reward.get_value(), reward)
             # expansion phase
@@ -148,9 +148,12 @@ class MCTS():
                 # pick on chlid at random for simulation
                     node = random.choice(list(node.children.values()))
                     # rollout
-                    reward = node.rollout(hashes)
+                    reward = node.rollout()
                     # backpropagate rollout value
                     node.update(reward.get_value(), reward)
+            if self.root.max_value.get_type() == "WIN":
+                break
+                
         if visualize:
             self.visualize()
             
@@ -186,7 +189,7 @@ def visualize(node):
     
     while not q.empty():
         node = q.get()
-        node_label = node.state.__repr__()+f"\nscore: {round(node.score, 3)},\n max_value: {node.max_value},\n n: {node.n},\n steps: {node.state.steps}\nreward: {node.reward},\n move: {node.move}"
+        node_label = node.state.__repr__()+f"\nscore: {round(node.score, 3)},\n max_value: {node.max_value},\n n: {node.n},\n steps: {node.state.steps}\nreward: {node.reward}"
         shape = 'oval'
         color = 'black'
         if node.reward.get_type() == "WIN":
