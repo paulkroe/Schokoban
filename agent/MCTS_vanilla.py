@@ -1,5 +1,4 @@
 import numpy as np
-from graphviz import Digraph
 from queue import Queue
 import random
 from copy import deepcopy
@@ -72,12 +71,6 @@ class Node():
         
         best_score = max(child.score for child in self.children.values())
         best_children = [child for child in self.children.values() if child.score == best_score]
-        if len(best_children) == 0:
-            print("best_score", best_score)
-            print([child.score for child in self.children.values()])
-            print("children", self.children)
-            visualize(self)
-            assert 0
         return random.choice(best_children) # break ties randomly
 
     def select_move(self):
@@ -121,7 +114,7 @@ class MCTS():
     def expand(self, node, hashes):
         node.expand_node(node.state.valid_moves(), hashes)
                 
-    def run(self, simulations, visualize=False, verbose=0):
+    def run(self, simulations, verbose=0):
         
         for i in range(simulations):
             if verbose > 0:
@@ -153,9 +146,6 @@ class MCTS():
                     node.update(reward.get_value(), reward)
             if self.root.max_value.get_type() == "WIN":
                 break
-                
-        if visualize:
-            self.visualize()
             
         if self.root.max_value.get_type() == "WIN":
             moves = []
@@ -177,33 +167,3 @@ class MCTS():
     @property
     def best_move(self):
         return self.root.select_move()
-    
-    def visualize(self):
-        visualize(self.root)
-    
-def visualize(node):
-    dot = Digraph()
-    q = Queue()
-    
-    q.put(node)
-    
-    while not q.empty():
-        node = q.get()
-        node_label = node.state.__repr__()+f"\nscore: {round(node.score, 3)},\n max_value: {node.max_value},\n n: {node.n},\n steps: {node.state.steps}\nreward: {node.reward}"
-        shape = 'oval'
-        color = 'black'
-        if node.reward.get_type() == "WIN":
-            node_label += f"\noutcome: {node.reward.get_type()}"
-            shape = 'octagon'
-            color = 'green'
-        elif node.reward.get_type() == "LOSS":
-            node_label += f",\noutcome: {node.reward.get_type()}"
-            shape = 'rectangle'
-            color = 'red'
-        dot.node(str(node), label=node_label, shape=shape, color=color)
-        
-        for child in node.children.values():
-            q.put(child)
-            dot.edge(str(node), str(child), label=str(child.move))
-    
-    dot.render('mcts', format='pdf', cleanup=True)

@@ -1,6 +1,5 @@
 import numpy as np
 import math
-from graphviz import Digraph
 from queue import Queue
 import random
 
@@ -193,7 +192,7 @@ class MCTS():
     def expand(self, node):
         node.expand_node(node.state.valid_moves(), self)
                 
-    def run(self, simulations, visualize=False, verbose=0):
+    def run(self, simulations, verbose=0):
         for i in range(simulations):
             if verbose:
                 print(f"Simulation {i+1}, {len(self.nodes)} nodes, {len(self.del_nodes)} deleted nodes", end="\r")
@@ -223,9 +222,6 @@ class MCTS():
                     node.update(reward.get_value(), reward)
             if self.root.max_value.get_type() == "WIN":
                 break
-                    
-        if visualize:
-            self.visualize()
             
         if self.root.max_value.get_type() == "WIN":
             moves = []
@@ -249,9 +245,6 @@ class MCTS():
     @property
     def best_move(self):
         return self.root.select_move()
-    
-    def visualize(self):
-        visualize(self.root)
 
     def find(self, state):
         q = Queue()
@@ -267,30 +260,3 @@ class MCTS():
                     visited.add(new_state.hash)
                     q.put((new_state, moves + [move]))
         return []
-    
-def visualize(node):
-    dot = Digraph()
-    q = Queue()
-    
-    q.put(node)
-    
-    while not q.empty():
-        node = q.get()
-        node_label = node.state.__repr__()+f"\nscore: {round(node.score, 3)},\n max_value: {node.max_value},\n n: {node.n},\n steps: {node.state.steps}\nreward: {node.reward}\nmove: {node.move}, depth: {node.depth}, children: {node.children.keys()}"
-        shape = 'oval'
-        color = 'black'
-        if node.reward.get_type() == "WIN":
-            node_label += f"\noutcome: {node.reward.get_type()}"
-            shape = 'octagon'
-            color = 'green'
-        elif node.reward.get_type() == "LOSS":
-            node_label += f",\noutcome: {node.reward.get_type()}"
-            shape = 'rectangle'
-            color = 'red'
-        dot.node(str(node), label=node_label, shape=shape, color=color)
-        
-        for child in node.children.values():
-            q.put(child)
-            dot.edge(str(node), str(child), label=str(child.move))
-    
-    dot.render('mcts', format='pdf', cleanup=True)

@@ -39,7 +39,7 @@ class Solver():
     
         self.print(board, verbose)
         tree = MCTS.MCTS(board)
-        moves = tree.run(num_sims, visualize=False, verbose=verbose)
+        moves = tree.run(num_sims, verbose=verbose)
         for move in moves:
             board = board.move(*move)
             if board.reward().get_type() != "STEP":  
