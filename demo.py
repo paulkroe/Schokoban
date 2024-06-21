@@ -9,10 +9,10 @@ random.seed(0)
 
 parser = argparse.ArgumentParser(description='Sokoban Solver', allow_abbrev=False)
 parser.add_argument('--level_id', type=int, required=True, help='Level ID')
-parser.add_argument('--folder', type=str, default="Microban/", help='prefix foldername')
+parser.add_argument('--folder', type=str, default="Microban/", help='foldername')
 parser.add_argument('--num_sims', type=int, default=100000, help='Number of simulations in the MCTS')
 parser.add_argument('--max_steps', type=int, default=100, help='Maximum number of steps to solve the level')
-parser.add_argument('--verbose', type=int, default=1, help='0 for no output, value between 0 and 2')
+parser.add_argument('--verbose', type=int, default=1, help='0 for no output, value between 0 and 3')
 parser.add_argument('--mode', type=str, default="afterstates", help='afterstates for using afterstates, vanilla for not using afterstates')
 
 args = parser.parse_args()

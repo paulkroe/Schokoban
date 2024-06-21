@@ -193,10 +193,10 @@ class MCTS():
     def expand(self, node):
         node.expand_node(node.state.valid_moves(), self)
                 
-    def run(self, simulations, visualize=False):
+    def run(self, simulations, visualize=False, verbose=0):
         for i in range(simulations):
-            
-            print(f"Simulation {i+1}, {len(self.nodes)} nodes, {len(self.del_nodes)} deleted nodes", end="\r")
+            if verbose:
+                print(f"Simulation {i+1}, {len(self.nodes)} nodes, {len(self.del_nodes)} deleted nodes", end="\r")
             # selection phase
             node = self.select_leaf(self.root)
             # if all states have been explored and there is no solution, None will be returned during the selection phase

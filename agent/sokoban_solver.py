@@ -11,7 +11,7 @@ class Solver():
         pass
     
     def print(self, string, verbose):
-        if verbose >= 2:
+        if verbose >= 3:
             print(string)            
     
     def solve(self, level_id, folder, num_sims, max_steps, verbose=0, mode="afterstates"):
@@ -26,7 +26,7 @@ class Solver():
             compute_deadlocks(level_id, folder, verbose=0)
             
 
-        if verbose >= 1:
+        if verbose >= 2:
             path = folder + f"level_{level_id}.txt"
             n, b = count_boxes(path)
             path = f"deadlock_detection/" + folder + f"level_{level_id}.npy"
@@ -39,7 +39,7 @@ class Solver():
     
         self.print(board, verbose)
         tree = MCTS.MCTS(board)
-        moves = tree.run(num_sims, visualize=False)
+        moves = tree.run(num_sims, visualize=False, verbose=verbose)
         for move in moves:
             board = board.move(*move)
             if board.reward().get_type() != "STEP":  
