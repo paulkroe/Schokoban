@@ -14,7 +14,7 @@ class Solver():
         if verbose >= 3:
             print(string)            
     
-    def solve(self, level_id, folder, num_sims, max_steps, verbose=0, mode="afterstates"):
+    def solve(self, level_id, folder, num_iters, max_steps, verbose=0, mode="afterstates"):
         if mode == "afterstates":
             import agent.MCTS as MCTS
         else:
@@ -39,7 +39,7 @@ class Solver():
     
         self.print(board, verbose)
         tree = MCTS.MCTS(board)
-        moves = tree.run(num_sims, verbose=verbose)
+        moves = tree.run(num_iters, verbose=verbose)
         for move in moves:
             board = board.move(*move)
             if board.reward().get_type() != "STEP":  

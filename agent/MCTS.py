@@ -7,31 +7,42 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-C_PUT = 8 # 8
-LOOKAHEAD = 7
+C_PUT = 8 # constant balancing exploration and exploitation
 
 class Node():
     def __init__(self, parent, state, move, depth):
+        # depth of the node in the Monte Carlo Search Tree (MCST)
         self.depth = depth
-        self.move = move
+        # board state represented by the node
         self.state = state
+        # parent node
         self.parent = parent
+        # move that led to the state of the node
+        self.move = move
+        # node children
         self.children = {}
+        # average over all rollouts that passed through the node (value of the node)
         self.q = 0
+        # number of rollouts that passed through the node (visit count)
         self.n = 0
+        # reward associated with the state the node represents
         self.reward = self.state.reward()
+        # maximum reward of the node and descendants
         self.max_value = self.reward
         
     @property
     def u(self):
         if self.parent is None:
             return 0
+        # exploration term in the UCT formula
         return C_PUT * np.sqrt(2*np.log(self.parent.n)) / (self.n)
     
+    # returns the UCT score of the node
     @property
     def score(self):
         return self.q + self.u
-    
+   
+    # recursively update the value of the node and its ancestors with the values obtained from the last rollout 
     def update(self, value, max_value):
         self.q = (self.q * self.n + value) / (self.n + 1)
         self.n += 1
@@ -39,6 +50,7 @@ class Node():
             self.max_value = max_value
         if self.parent:
             self.parent.update(value, max_value) 
+    
     
     def update_depth(self, depth):
         self.depth = depth
@@ -81,7 +93,7 @@ class Node():
         if self.parent:
             self.parent.downgrade(n, value)
            
-    
+    # expands a node by adding its children to the tree, unnecessary children are removed, and the tree restructured if necessary
     def expand_node(self, valid_moves, mcts):
         for move in valid_moves:
             new_state = self.state.move(*move)
@@ -131,7 +143,7 @@ class Node():
         if self.should_remove() and (not self.state.hash in mcts.del_nodes):
             self.remove(mcts)
         
-         
+    # selects the child node according to the UCT policy
     def select_child(self):
         if len(self.children) == 0:
             return None
@@ -149,6 +161,7 @@ class Node():
             
         return random.choice(best_children) # break ties randomly
 
+    
     def select_move(self):
         if len(self.children) == 0:
             return None
