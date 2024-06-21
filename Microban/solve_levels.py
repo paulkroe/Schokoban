@@ -10,7 +10,7 @@ random.seed(0)
 parser = argparse.ArgumentParser(description='Sokoban Solver')
 parser.add_argument('--num_sims', default=1600, type=int, help='Number of simulations in the MCTS')
 parser.add_argument('--max_steps', type=int, default=100, help='Maximum number of steps to solve the level')
-parser.add_argument('--verbose', type=int, default=0, help='0 for no output, number between 0 and 2')
+parser.add_argument('--verbose', type=int, default=0, help='0 for no output, number between 0 and 3')
 parser.add_argument('--mode', type=str, default="afterstates", help='afterstates for using afterstates, vanilla for not using afterstates')
 args = parser.parse_args()
 

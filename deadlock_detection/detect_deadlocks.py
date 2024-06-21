@@ -11,12 +11,156 @@ def check_deadlock(board):
     if precomputed_deadlock(board):
         return True
      
-    if wall_deadlock(board):
+    if locked(board):
         return True
     
+    if wall_deadlock(board):
+        return True
+       
     # TODO: add kernels that check for deadlocks
     return False
 
+# checks if a box is in one of the precomputed deadlocks
+def precomputed_deadlock(board):
+    for box in board.find_elements([Elements.BOX.value]):
+        if board.deadlocks[box[0], box[1]] == 0:
+            return True
+    return False
+
+class Box():
+    def __init__(self, position):
+        self.position = position
+        self.vertical_checks = [0, 0]
+        self.horizontal_checks = [0, 0]
+        self.vertical_visited = False
+        self.horizontal_visited = False
+    
+    @property
+    def vertical_lock(self):
+        return bool(sum(self.vertical_checks))
+    
+    @property
+    def horizontal_lock(self):
+        return bool(sum(self.horizontal_checks))
+    
+    def __repr__(self):
+        return f"Box at {self.position}, vertical: {self.vertical_checks}, horizontal: {self.horizontal_checks}"
+    
+class Boxes():
+    def __init__(self, box_dict, goal_list):
+        self.box_dict = box_dict
+        self.goal_list = goal_list
+        
+    def simple_checks(self, board):
+        for box in self.box_dict.values():
+            self.simple_vertical_lock(box, board)
+            self.simple_horizontal_lock(box, board)
+            
+    def recursive_checks(self, board):
+        for box in self.box_dict.values():
+            # vertical checks
+            if not box.vertical_lock:
+                # box above
+                if board.level[box.position[0]-1, box.position[1]] in [Elements.BOX.value, Elements.BOX_ON_GOAL.value]:
+                    if self.box_dict[(box.position[0]-1, box.position[1])].horizontal_lock:
+                        box.vertical_checks[1] = 1
+                    elif self.recursive_horizontal_lock(self.box_dict[(box.position[0]-1, box.position[1])], board, [box.position]):
+                        box.vertical_checks[1] = 1
+            
+            if not box.vertical_lock:
+                # box below
+                if board.level[box.position[0]+1, box.position[1]] in [Elements.BOX.value, Elements.BOX_ON_GOAL.value]:
+                    if self.box_dict[(box.position[0]+1, box.position[1])].horizontal_lock:
+                        box.vertical_checks[1] = 1
+                    elif self.recursive_horizontal_lock(self.box_dict[(box.position[0]+1, box.position[1])], board, [box.position]):
+                        box.vertical_checks[1] = 1 
+            
+            # horizontal checks 
+            if not box.horizontal_lock:
+                # box left
+                if board.level[box.position[0], box.position[1]-1] in [Elements.BOX.value, Elements.BOX_ON_GOAL.value]:
+                    if self.box_dict[(box.position[0], box.position[1]-1)].vertical_lock:
+                        box.horizontal_checks[1] = 1
+                    elif self.recursive_vertical_lock(self.box_dict[(box.position[0], box.position[1]-1)], board, [box.position]):
+                        box.horizontal_checks[1] = 1
+
+                # box right
+                if board.level[box.position[0], box.position[1]+1] in [Elements.BOX.value, Elements.BOX_ON_GOAL.value]:
+                    if self.box_dict[(box.position[0], box.position[1]+1)].vertical_lock:
+                        box.horizontal_checks[1] = 1
+                    elif self.recursive_vertical_lock(self.box_dict[(box.position[0], box.position[1]+1)], board, [box.position]):
+                        box.horizontal_checks[1] = 1
+                
+    def deadlocked(self):
+        for box in self.box_dict.values():
+            if box.vertical_lock and box.horizontal_lock:
+                if box.position not in self.goal_list:
+                    return True
+        return False
+    
+    def simple_vertical_lock(self, box, board):
+        if board.level[box.position[0]-1, box.position[1]] == Elements.WALL.value or board.level[box.position[0]+1, box.position[1]] == Elements.WALL.value:
+            box.vertical_checks[0] = 1
+
+        if board.deadlocks[box.position[0]-1, box.position[1]] == 0 and board.deadlocks[box.position[0]+1, box.position[1]] == 0:
+            box.vertical_checks[0] = 1
+
+    def simple_horizontal_lock(self, box, board):
+        if board.level[box.position[0], box.position[1]-1] == Elements.WALL.value or board.level[box.position[0], box.position[1]+1] == Elements.WALL.value:
+            box.horizontal_checks[0] = 1
+
+        if board.deadlocks[box.position[0], box.position[1]-1] == 0 and board.deadlocks[box.position[0], box.position[1]+1] == 0:
+            box.horizontal_checks[0] = 1
+            
+    def recursive_vertical_lock(self, box, board, path):
+        if box.vertical_lock:
+            return True
+        # box above
+        if board.level[box.position[0]-1, box.position[1]] in [Elements.BOX.value, Elements.BOX_ON_GOAL.value]:
+            #check if box is in path
+            if (box.position[0]-1, box.position[1]) in path:
+                return True
+            if self.recursive_horizontal_lock(self.box_dict[(box.position[0]-1, box.position[1])], board, path + [box.position]):
+                return True
+        # box below
+        if board.level[box.position[0]+1, box.position[1]] in [Elements.BOX.value, Elements.BOX_ON_GOAL.value]:
+            #check if box is in path
+            if (box.position[0]+1, box.position[1]) in path:
+                return True
+            if self.recursive_horizontal_lock(self.box_dict[(box.position[0]+1, box.position[1])], board, path + [box.position]):
+                return True
+        
+        return False
+
+    def recursive_horizontal_lock(self, box, board, path):
+        if box.horizontal_lock:
+            return True
+        # box left
+        if board.level[box.position[0], box.position[1]-1] in [Elements.BOX.value, Elements.BOX_ON_GOAL.value]:
+            #check if box is in path
+            if (box.position[0], box.position[1]-1) in path:
+                return True
+            if self.recursive_vertical_lock(self.box_dict[box.position[0], box.position[1]-1], board, path + [box.position]):
+                return True
+        # box right        
+        if board.level[box.position[0], box.position[1]+1] in [Elements.BOX.value, Elements.BOX_ON_GOAL.value]:
+            #check if box is in path
+            if (box.position[0], box.position[1]+1) in path:
+                return True
+            if self.recursive_vertical_lock(self.box_dict[box.position[0], box.position[1]+1], board, path + [box.position]):
+                return True
+            
+        return False 
+    
+def locked(board):
+    boxes = board.find_elements([Elements.BOX.value, Elements.BOX_ON_GOAL.value])
+    boxes = {box: Box(box) for box in boxes}
+    goals = board.find_elements([Elements.GOAL.value, Elements.BOX_ON_GOAL.value, Elements.PLAYER_ON_GOAL.value])
+    boxes = Boxes(boxes, goals)
+    boxes.simple_checks(board)
+    boxes.recursive_checks(board)
+    return boxes.deadlocked()
+ 
 # checks if a box is pushed against a wall without a goal
 # 4 sweeplines that check for boxes and goals from every direction
 # returns true if a wall deadlock is detected
@@ -53,29 +197,4 @@ def wall_deadlock(board):
                 return True
             break
     
-    return False
-
-# checks if a box is in one of the precomputed deadlocks
-def precomputed_deadlock(board):
-    for box in board.find_elements([Elements.BOX.value]):
-        if board.deadlocks[box[0], box[1]] == 0:
-            return True
-    return False
-
-def corner_deadlock(box, board):
-    # if box is on goal deadlock does not matter
-    if board.level[box] == Elements.BOX_ON_GOAL.value:
-        return False
-    
-    for d1, d2 in zip([(0, 1), (1, 0), (0, -1), (-1, 0)], [(1, 0), (0, -1), (-1, 0), (0, 1)]):
-        box_d1 = (box[0]+d1[0], box[1]+d1[1])
-        box_d2 = (box[0]+d2[0], box[1]+d2[1])
-        
-        obs1 = board.level[box_d1]
-        obs2 = board.level[box_d2]
-        
-        # box is surrounded by walls
-        if obs1 == Elements.WALL.value and obs2 == Elements.WALL.value:
-            return True
-
     return False
