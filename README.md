@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This repository contains a Sokoban solver called Schokoban developed as part of my Bachelor thesis at ETH Zurich. The solver utilizes single-player Monte Carlo tree search (MCTS). It's important to note that while state-of-the-art Sokoban solvers typically employ different algorithms, this project explores the adaptation of the MCTS algorithm to Sokoban. A key innovation in this solver is the use of afterstates, which significantly enhances the performance compared to more traditional approaches.
+This repository contains a Sokoban solver called Schokoban developed as part of my Bachelor thesis at ETH Zurich. The solver utilizes single-player Monte Carlo tree search (MCTS). It's important to note that while state-of-the-art Sokoban solvers typically employ different algorithms, this project explores the adaptation of the MCTS algorithm to Sokoban. A notable advancement in this solver is its method for managing redundant states in the Monte Carlo Tree Search, which substantially improves performance over traditional approaches.
 
 ## Project Objective
 
@@ -37,7 +37,7 @@ pip install -r requirements.txt
 #### Usage
 Now from within the SokobanSolver folder the solver can be used. For example:
 ```
-python3 demo.py --folder=Microban/ --level_id=1 --mode=afterstates --num_iters=1000 --max_steps=50 --verbose=3
+python3 demo.py --folder=Microban/ --level_id=1 --mode=schoko --num_iters=1000 --max_steps=50 --verbose=3
 ```
 Other examples can be found below.
 
@@ -53,19 +53,19 @@ demo.py takes the following arguments:
 - `--level_id`: the index of the level in the folder
 - `--num_iters`: the number of iterations of the MCTS
 - `--max_steps`: the maximum number allowed steps in the level
-- `--mode`: the mode of the solver, either `afterstates` or `vanilla`, generally `afterstates` performs better
+- `--mode`: the mode of the solver, either `schoko` or `vanilla`, generally `schoko` performs better
 - `--verbose`: the verbosity of the output, 0 for no output, 3 for detailed output
 - `--seed`: fix the random seed for reproducibility
 
 For solving the first level in the Mircoban III collection one might use:
 ```
-python3 demo.py --folder=Microban/ --level_id=1 --mode=afterstates --num_iters=1000 --max_steps=50 --verbose=3
+python3 demo.py --folder=Microban/ --level_id=1 --mode=schoko --num_iters=1000 --max_steps=50 --verbose=3
 ```
 For testing the solver on a whole level collection use experiments.py.
 experiments.py takes the same arguments as demo.py.
 For testing the solver on the Microban III collection one might use:
 ```
-python3 experiments/experiments.py --folder=Microban/ --num_iters=1000 --max_steps=50 --mode=afterstates --verbose=0 --seed=42
+python3 experiments/experiments.py --folder=Microban/ --num_iters=1000 --max_steps=50 --mode=schoko --verbose=0 --seed=42
 ```
 ## Run Schokoban on custom levels
 The algorithms in this thesis can be tested on any Sokoban level. The easiest way to do so is to create a new level file in the CustomLevels folder. The level file should be a text file the following format:
@@ -93,6 +93,15 @@ The level file should only contain the following characters:
 
 The level file should be saved in the CustomLevels folder as level_1.txt. The level can then be run by running the following command:
 ```
-python3 demo.py --folder=CustomLevels/ --level_id=1 --mode=afterstates --num_iters=10000 --max_steps=50 --verbose=3
+python3 demo.py --folder=CustomLevels/ --level_id=1 --mode=schoko --num_iters=10000 --max_steps=50 --verbose=3
 ```
 For solving more involved levels it might be necessary to increase the number of iterations or the maximum number of steps.
+
+## Results
+
+| Number of Iterations | 25 | 50 | 100 | 1000 | 2000 | 5000 | 10000 | 100000 |
+|----------------------|----|----|-----|------|------|------|-------|--------|
+| Vanilla MCTS         | 4  | 5  | 6   | 7    | 5    | 6    | 17    | 50     |
+| Schokoban            | 6  | 20 | 41  | 60   | 60   | 60   | 60    | 60     |
+
+The table above shows the number of levels solved by the vanilla MCTS and Schokoban solvers for different numbers of iterations. The results are based on the 60 levels in the Testsuite.

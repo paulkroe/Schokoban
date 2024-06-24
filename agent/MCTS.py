@@ -7,7 +7,8 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-C_PUT = 8 # constant balancing exploration and exploitation
+# constant balancing exploration and exploitation
+C_PUT = 8
 
 class Node():
     def __init__(self, parent, state, move, depth):
@@ -37,12 +38,12 @@ class Node():
         # exploration term in the UCT formula
         return C_PUT * np.sqrt(2*np.log(self.parent.n)) / (self.n)
     
-    # returns the UCT score of the node
+    # returns UCT score
     @property
     def score(self):
         return self.q + self.u
    
-    # recursively update the value of the node and its ancestors with the values obtained from the last rollout 
+    # recursively update the value of a node the value obtained from the last rollout 
     def update(self, value, max_value):
         self.q = (self.q * self.n + value) / (self.n + 1)
         self.n += 1
@@ -51,13 +52,14 @@ class Node():
         if self.parent:
             self.parent.update(value, max_value) 
     
-    
+    # recursively update the depth of a node
     def update_depth(self, depth):
         self.depth = depth
         self.state.steps = depth
         for child in self.children.values():
             child.update_depth(depth+1)
     
+    # after moving a subtree to a new parent, recursively update the new parent and its ancestors
     def upgrade(self, n, value):
         self.n += n
         self.q = (self.q * (self.n-n) + value*n) / (self.n)
@@ -72,6 +74,7 @@ class Node():
         if self.parent:
             self.parent.upgrade(n, value)
     
+    # after moving a subtree to a new parent, recursively update the old parent and its ancestors
     def downgrade(self, n, value):
         self.n -= n
         self.q = (self.q * (self.n+n) - value*n) / (self.n)
@@ -98,10 +101,12 @@ class Node():
         for move in valid_moves:
             new_state = self.state.move(*move)
             new_hash = new_state.hash
+            # child has not yet been added to the tree
             if not (new_hash in mcts.del_nodes or new_hash in mcts.nodes):
                 child_node = Node(state=new_state, parent=self, move=move, depth=self.depth+1)
                 self.children[move] = child_node
                 mcts.nodes[new_hash] = child_node
+            # child has already been added to the tree at a lower depth
             elif new_hash in mcts.nodes and self.depth+1 < mcts.nodes[new_hash].depth:
                 self.children[move] = mcts.nodes[new_hash]
                 del mcts.nodes[new_hash].parent.children[mcts.nodes[new_hash].move]
@@ -127,41 +132,32 @@ class Node():
                 # upgrade new parent
                 self.upgrade(n, value)
                 
-                assert N == mcts.root.n
-                if abs(V - mcts.root.q) > 0.0001:
-                    print(V)
-                    print(mcts.root.q)
-                    assert 0
-                # assert 0
         # important that this is not done in one loop
         for move in valid_moves:
             if move in self.children: # could be that child caused cycle and thus was not added
                 if self.children[move].reward.get_type() == "LOSS" or self.children[move] in mcts.del_nodes:
                     assert self.children[move].should_remove()
                     self.children[move].remove(mcts)
-           
+                    
+        # it might be that during expansion no node was added, in this case delete the current node  
         if self.should_remove() and (not self.state.hash in mcts.del_nodes):
             self.remove(mcts)
         
     # selects the child node according to the UCT policy
     def select_child(self):
-        if len(self.children) == 0:
-            return None
         
         # if there is a unvisited node, visit that node first
         unvisited = [child for child in self.children.values() if child.n == 0]
         if len(unvisited) > 0:
             return random.choice(unvisited)
-        
+       
+        # otherwise select the child with the highest UCT score 
         best_score = max(child.score for child in self.children.values())
         best_children = [child for child in self.children.values() if child.score == best_score]
-        if len(best_children) == 0:
-            print(best_score)
-            # check if best_score is nan
             
         return random.choice(best_children) # break ties randomly
 
-    
+    # selects the move that leads to the child node with the highest value, used for extracting the solution once found
     def select_move(self):
         if len(self.children) == 0:
             return None
@@ -170,12 +166,15 @@ class Node():
             best_children = [child for child in self.children.values() if child.max_value.get_value() == best_value]
             return random.choice(best_children).move # break ties randomly
     
+    # returns rollout value of current node
     def rollout(self):
         return self.reward
     
+    # checks if the node should be removed from the tree
     def should_remove(self):
         return len(self.children) == 0 and not (self.max_value.get_type() == "WIN")
-        
+    
+    # recursively removes the node from the tree
     def remove(self, mcts):
         mcts.del_nodes.add(self.state.hash)
         if self.state.hash == mcts.root.state.hash: # if the rot node is deleted, the level can't be solveds
@@ -193,20 +192,20 @@ class MCTS():
         self.root = Node(parent=None, state=sokobanboard, move=None, depth=0)
         self.del_nodes = set()
         self.nodes = {self.root.state.hash: self.root}
-         
+    
+    # returns the leaf node selected during selection phase
     def select_leaf(self, node):
-        # if no node can be returned, return None
         while len(node.children) != 0 and node.reward.get_type() == "STEP":
             node = node.select_child()
-            if node is None:
-                break
         return node
     
+    # expansion phase
     def expand(self, node):
         node.expand_node(node.state.valid_moves(), self)
                 
-    def run(self, simulations, verbose=0):
-        for i in range(simulations):
+    # runs the MCTS algorithm for a given number of iterations
+    def run(self, iterations, verbose=0):
+        for i in range(iterations):
             if verbose:
                 print(f"Simulation {i+1}, {len(self.nodes)} nodes, {len(self.del_nodes)} deleted nodes", end="\r")
             # selection phase
@@ -239,37 +238,10 @@ class MCTS():
         if self.root.max_value.get_type() == "WIN":
             moves = []
             node = self.root
-            # if might be that after this loop node.state.reward().get_type() != "WIN" if the solution was discovered during rollout
+            # extract solution
             while len(node.children) != 0:
                 move = node.select_move()
                 moves.append(move)
                 node = node.children[move]
-            # find win with bfs
-            if node.state.reward().get_type() != "WIN":
-                moves.extend(self.find(node.state))           
-        else:
-            best_move = self.best_move
-            if best_move is None:
-                moves =  []
-            else:
-                moves = [self.best_move]
-        return moves
-    
-    @property
-    def best_move(self):
-        return self.root.select_move()
-
-    def find(self, state):
-        q = Queue()
-        q.put((state, []))
-        visited = set(state.hash)
-        while not q.empty():
-            state, moves = q.get()
-            if state.reward().get_type() == "WIN":
-                return moves
-            for move in state.valid_moves():
-                new_state = state.move(*move)
-                if new_state.hash not in visited:
-                    visited.add(new_state.hash)
-                    q.put((new_state, moves + [move]))
-        return []
+            assert node.reward.get_type() == "WIN"        
+            return moves

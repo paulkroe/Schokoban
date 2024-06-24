@@ -14,8 +14,8 @@ class Solver():
         if verbose >= 3:
             print(string)            
     
-    def solve(self, level_id, folder, num_iters, max_steps, verbose=0, mode="afterstates"):
-        if mode == "afterstates":
+    def solve(self, level_id, folder, num_iters, max_steps, verbose=0, mode="schoko"):
+        if mode == "schoko":
             import agent.MCTS as MCTS
         else:
             import agent.MCTS_vanilla as MCTS
@@ -40,17 +40,18 @@ class Solver():
         self.print(board, verbose)
         tree = MCTS.MCTS(board)
         moves = tree.run(num_iters, verbose=verbose)
-        for move in moves:
-            board = board.move(*move)
-            if board.reward().get_type() != "STEP":  
+        if not moves is None:
+            for move in moves:
+                board = board.move(*move)
+                if board.reward().get_type() != "STEP":  
+                    self.print("==========", verbose)
+                    self.print(board, verbose)
+                    self.print(board.reward().get_type(), verbose)
+                    outcome = board.reward().get_type()
+                    if outcome == "WIN":
+                        assert len(board.find_elements(Sokoban.Elements.BOX.value)) == 0       
+                    return board.reward().get_type()
                 self.print("==========", verbose)
                 self.print(board, verbose)
-                self.print(board.reward().get_type(), verbose)
-                outcome = board.reward().get_type()
-                if outcome == "WIN":
-                    assert len(board.find_elements(Sokoban.Elements.BOX.value)) == 0       
-                return board.reward().get_type()
-            self.print("==========", verbose)
-            self.print(board, verbose)
             
         return "LOSS"

@@ -12,7 +12,7 @@ parser.add_argument('--num_iters', default=1000, type=int, help='Number of simul
 parser.add_argument('--folder', type=str, default="Microban/", help='foldername')
 parser.add_argument('--max_steps', type=int, default=100, help='Maximum number of steps to solve the level')
 parser.add_argument('--verbose', type=int, default=0, help='0 for no output, number between 0 and 3')
-parser.add_argument('--mode', type=str, default="afterstates", help='afterstates for using afterstates, vanilla for not using afterstates')
+parser.add_argument('--mode', type=str, default="schoko", help='schoko for using schoko, vanilla for not using ')
 parser.add_argument('--seed', type=int, default=None, help='Random Seed')
 args = parser.parse_args()
 

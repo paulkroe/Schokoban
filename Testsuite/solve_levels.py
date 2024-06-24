@@ -11,7 +11,10 @@ parser = argparse.ArgumentParser(description='Sokoban Solver')
 parser.add_argument('--num_iters', default=1600, type=int, help='Number of simulations in the MCTS')
 parser.add_argument('--max_steps', type=int, default=100, help='Maximum number of steps to solve the level')
 parser.add_argument('--verbose', type=int, default=0, help='0 for no output, number between 0 and 3')
-parser.add_argument('--mode', type=str, default="afterstates", help='afterstates for using afterstates, vanilla for not using afterstates')
+
+
+parser.add_argument('--mode', type=str, default="schoko", help='schoko for using schokoban, vanilla for using vanilla mcts')
+
 args = parser.parse_args()
 
 folder_path = 'Testsuite/'
@@ -29,7 +32,3 @@ for level_id in range(NUM_LEVELS):
     outcomes[level_id] = 1 if outcome == "WIN" else 0
 
 print(f"Soleved {sum(outcomes)} out of {NUM_LEVELS} levels.")
-'''
-python3 Testsuite/solve_levels.py --num_sim=5000 --max_steps=50 --verbose=0
-python3 Testsuite/solve_levels.py --num_sim=5000 --max_steps=50 --verbose=0 
-'''

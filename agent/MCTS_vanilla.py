@@ -8,18 +8,27 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import game.Sokoban as Sokoban
 
-C_PUT = 32 # 8
-D_PUT = 8  # 100
+# constant balancing exploration and exploitation
+C_PUT = 32 
+D_PUT = 8
 
 class Node():
     def __init__(self, parent, state, move):
-        self.move = move
+        # board state represented by the node
         self.state = state
+        # parent node
         self.parent = parent
+        # move that led to the state of the node
+        self.move = move
+        # node children
         self.children = {}
+        # average over all rollouts that passed through the node (value of the node)
         self.q = 0
+        # number of rollouts that passed through the node (visit count)
         self.n = 0
+        # reward associated with the state the node represents
         self.reward = self.state.reward()
+        # maximum reward of the node and descendants
         self.max_value = self.reward
         self.sum_of_squares = self.reward.get_value()**2
         
@@ -27,12 +36,15 @@ class Node():
     def u(self):
         if self.parent is None:
             return 0
+        # exploration term in adjusted UCTS formula
         return C_PUT * np.sqrt(2*np.log(self.parent.n)) / (self.n) + np.sqrt(self.sum_of_squares / (self.n) - self.q**2 + D_PUT)
-    
+   
+    # returns adjusted UCT score 
     @property
     def score(self):
         return self.q + self.u
     
+    # recursively update the value of a node the value obtained from the last rollout 
     def update(self, value, max_value):
         self.q = (self.q * self.n + value) / (self.n + 1)
         self.n += 1
@@ -42,10 +54,12 @@ class Node():
         if self.parent:
             self.parent.update(value, max_value)
             
+    # expands a node by adding its children to the tree, unnecessary children are removed
     def expand_node(self, valid_moves, hashes):
         hashes_copy = deepcopy(hashes)
         for move in valid_moves:
             new_state = self.state.move(*move)
+            # don't add child if the child was already encountered during the last rollout
             if new_state.hash in hashes_copy:
                 continue
             else:
@@ -60,6 +74,7 @@ class Node():
                     assert self.children[move].should_remove()
                     self.children[move].remove()
 
+    # selects the child node according to the UCT policy
     def select_child(self):
         if len(self.children) == 0:
             return None
@@ -73,6 +88,7 @@ class Node():
         best_children = [child for child in self.children.values() if child.score == best_score]
         return random.choice(best_children) # break ties randomly
 
+    # selects the move that leads to the child node with the highest value, used for extracting the solution once found
     def select_move(self):
         if len(self.children) == 0:
             return None
@@ -81,13 +97,16 @@ class Node():
             best_children = [child for child in self.children.values() if child.max_value.get_value() == best_value]
             return random.choice(best_children).move # break ties randomly
     
+    # returns rollout value of current node
     def rollout(self):
         return self.reward
     
+    # checks if the node should be removed from the tree
     def should_remove(self):
         if len(self.children) == 0 and not (self.reward.get_type() == "WIN"):
             return True
         
+    # recursively removes the node from the tree
     def remove(self):
         assert len(self.children) == 0
         parent = self.parent
@@ -95,37 +114,31 @@ class Node():
             del parent.children[self.move]
             if parent.should_remove():
                 parent.remove() 
-        del self
-    def __del__(self):
-        pass
     
 class MCTS():
     def __init__(self, sokobanboard):
         self.root = Node(parent=None, state=sokobanboard, move=None)
          
+    # returns the leaf node selected during selection phase
     def select_leaf(self, node, hashes):
         while len(node.children) != 0 and node.reward.get_type() == "STEP":
             node = node.select_child()
-            if node is None:
-                break
             hashes.append(node.state.hash)
         return node
     
+    # expansion phase
     def expand(self, node, hashes):
         node.expand_node(node.state.valid_moves(), hashes)
                 
-    def run(self, simulations, verbose=0):
-        
-        for i in range(simulations):
+    # runs the MCTS algorithm for a given number of iterations
+    def run(self, iterations, verbose=0):
+        for i in range(iterations):
             if verbose > 0:
                 print(f"Simulation: {i}", end="\r")
             hashes = [self.root.state.hash]
             
             # selection phase
             node = self.select_leaf(self.root, hashes)
-            # if all states have been explored and there is no solution, None will be returned during the selection phase
-            if node is None:
-                return None
             # rollout
             if node.n == 0:
                 # random rollout
@@ -154,16 +167,5 @@ class MCTS():
             while len(node.children) != 0:
                 move = node.select_move()
                 moves.append(move)
-                node = node.children[move]
-        else:
-            best_move = self.best_move
-            if best_move is None:
-                moves =  []
-            else:
-                moves = [self.best_move]
-            
-        return moves
-    
-    @property
-    def best_move(self):
-        return self.root.select_move()
+                node = node.children[move]           
+            return moves
