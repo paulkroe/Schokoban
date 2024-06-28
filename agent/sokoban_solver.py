@@ -14,7 +14,7 @@ class Solver():
         if verbose >= 3:
             print(string)            
     
-    def solve(self, level_id, folder, num_iters, max_steps, verbose=0, mode="schoko"):
+    def solve(self, level_id, folder, num_iters, verbose=0, mode="schoko"):
         if mode == "schoko":
             import agent.MCTS as MCTS
         else:
@@ -35,7 +35,7 @@ class Solver():
             
         self.print("Solving Sokoban", verbose)
         
-        board = Sokoban.SokobanBoard(level_id=level_id, folder=folder, max_steps=max_steps)
+        board = Sokoban.SokobanBoard(level_id=level_id, folder=folder)
     
         self.print(board, verbose)
         tree = MCTS.MCTS(board)

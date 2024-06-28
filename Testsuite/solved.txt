@@ -1,4 +1,4 @@
-python3 kids_levels/solve_levels.py --num_sim=5000 --max_steps=50 --verbose=0
+python3 kids_levels/solve_levels.py --num_sim=5000 --verbose=0
 Level 1: WIN.
 Level 2: WIN.
 Level 3: WIN.

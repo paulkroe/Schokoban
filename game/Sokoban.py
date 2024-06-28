@@ -12,20 +12,17 @@ from deadlock_detection.detect_deadlocks import check_deadlock
 from deadlock_detection.precompute_deadlocks import compute_deadlocks
 from game.reward import Reward
 
-MAX_STEP = 1000
-
 # negative minimum cost perfect matching (Pushing the limits: New developments in single-agent search: Technical report) 
 
 class SokobanBoard:
     
-    def __init__(self, level_id, max_steps=MAX_STEP, deadlocks=None, folder=None):
+    def __init__(self, level_id, deadlocks=None, folder=None):
         path = folder+"/level_"+str(level_id)+".txt"
         self.folder = folder
         self.level_id = level_id
         self.level = self.load_level(path) 
         self.player = self.find_elements([Elements.PLAYER.value, Elements.PLAYER_ON_GOAL.value])[0]
         self.steps = 0
-        self.max_steps = max_steps
         
         self.interior = sorted(self.find_interior(*self.player))
         self.box_positions = sorted(self.find_elements([Elements.BOX.value, Elements.BOX_ON_GOAL.value]))
@@ -139,7 +136,7 @@ class SokobanBoard:
         return new_board
     
     def construct(self, level, player, steps):
-        new_board = SokobanBoard(level_id=self.level_id, folder=self.folder, max_steps=self.max_steps, deadlocks=self.deadlocks) 
+        new_board = SokobanBoard(level_id=self.level_id, folder=self.folder, deadlocks=self.deadlocks) 
         new_board.level = level
         new_board.player = player
         new_board.steps = steps
@@ -163,7 +160,7 @@ class SokobanBoard:
         reward = -min_cost_matching(self)
         if len(self.find_elements(Elements.BOX.value)) == 0:
             return Reward(reward, "WIN")
-        if check_deadlock(self) or self.steps > self.max_steps:
+        elif check_deadlock(self):
             return Reward(reward, "LOSS")
         else:
             return Reward(reward, "STEP")

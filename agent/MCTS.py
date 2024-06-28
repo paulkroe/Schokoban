@@ -28,7 +28,7 @@ class Node():
         self.n = 0
         # reward associated with the state the node represents
         self.reward = self.state.reward()
-        # maximum reward of the node and descendants
+        # maximum reward of the node's and descendants, used for extracting the solution
         self.max_value = self.reward
         
     @property

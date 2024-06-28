@@ -28,8 +28,9 @@ class Node():
         self.n = 0
         # reward associated with the state the node represents
         self.reward = self.state.reward()
-        # maximum reward of the node and descendants
+        # maximum reward of the node's and descendants, used for extracting the solution
         self.max_value = self.reward
+        # sum of squares of rewards, used for calculating the variance of the rewards
         self.sum_of_squares = self.reward.get_value()**2
         
     @property

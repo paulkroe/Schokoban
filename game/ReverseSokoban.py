@@ -7,11 +7,9 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from game.GameElements import Elements, char_to_element, element_to_char
 
-MAX_STEP = 1000
-
 class ReverseSokobanBoard:
 
-    def __init__(self, level_id, max_steps=MAX_STEP, folder=None):
+    def __init__(self, level_id, folder=None):
         path = folder+"/level_"+str(level_id)+".txt"
         self.level = self.load_level(path)
         self.level_id = level_id
@@ -21,7 +19,6 @@ class ReverseSokobanBoard:
         self.player = components[0][0]
         self.level[self.player] = Elements.PLAYER.value if self.level[self.player] == Elements.FLOOR.value else Elements.PLAYER_ON_GOAL.value
         self.steps = 0
-        self.max_steps = max_steps
 
         self.interior = sorted(self.find_interior(*self.player))
         self.box_positions = sorted(self.find_elements([Elements.BOX.value, Elements.BOX_ON_GOAL.value]))
@@ -179,7 +176,7 @@ class ReverseSokobanBoard:
         return new_board
 
     def construct(self, level, player, steps):
-        new_board = ReverseSokobanBoard(level_id=self.level_id, max_steps=self.max_steps, folder=self.folder)
+        new_board = ReverseSokobanBoard(level_id=self.level_id, folder=self.folder)
         new_board.level = level
         new_board.player = player
         new_board.steps = steps
