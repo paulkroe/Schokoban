@@ -6,6 +6,7 @@ import sys
 import os
 import random
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from game.Sokoban import fix_level
 
 # print current path
 print(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -26,14 +27,8 @@ def load_level(path):
         for i, line in enumerate(lines):
             for j, char in enumerate(line.replace('\n', '')):
                 level[i, j] = char_to_element[char].value
-                
-        # fix left side:
-        for row in level:
-            for i in range(len(row)):
-                if row[i] == Elements.FLOOR.value:
-                    row[i] = Elements.WALL.value
-                else:
-                    break
+        
+        level = fix_level(level)        
         
     return level
 

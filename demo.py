@@ -21,6 +21,6 @@ if args.seed:
 
 solver = sokoban_solver.Solver()
 outcome = solver.solve(args.level_id, args.folder, args.num_iters, args.verbose, args.mode)
-if args.verbose in [0,1]:
+if args.verbose in [0,2]:
     print("                                                                            ", end="\r")
     print(outcome)

@@ -12,7 +12,32 @@ from deadlock_detection.detect_deadlocks import check_deadlock
 from deadlock_detection.precompute_deadlocks import compute_deadlocks
 from game.reward import Reward
 
-# negative minimum cost perfect matching (Pushing the limits: New developments in single-agent search: Technical report) 
+# used for visualization    
+def fix_level(level):
+    height = level.shape[0]
+    width = max(len(row) for row in level)
+    fixed_level = np.ones((height, width), dtype=int)*Elements.WALL.value
+    
+    # start from the current player position
+    player = np.where(np.isin(level, [Elements.PLAYER.value, Elements.PLAYER_ON_GOAL.value]))
+    player = (player[0][0], player[1][0])
+    
+    # start bfs from player position
+    q = Queue()
+    q.put(player)
+    while not q.empty():
+        x, y = q.get()
+        fixed_level[x, y] = Elements.FLOOR.value
+        for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
+            new_x, new_y = x + dx, y + dy
+            if 0 <= new_x < height and 0 <= new_y < width and fixed_level[new_x, new_y] == Elements.WALL.value and level[new_x, new_y] != Elements.WALL.value:
+                q.put((new_x, new_y))
+                
+    for i in range(len(level)):
+        for j in range(len(level[i])):
+            if fixed_level[i, j] == Elements.FLOOR.value:
+                fixed_level[i, j] = level[i, j]
+    return fixed_level
 
 class SokobanBoard:
     
@@ -48,13 +73,7 @@ class SokobanBoard:
                 for j, char in enumerate(line.replace('\n', '')):
                     level[i, j] = char_to_element[char].value
                     
-            # fix left side:
-            for row in level:
-                for i in range(len(row)):
-                    if row[i] == Elements.FLOOR.value:
-                        row[i] = Elements.WALL.value
-                    else:
-                        break
+            level = fix_level(level)
             
         return level
     
@@ -164,3 +183,4 @@ class SokobanBoard:
             return Reward(reward, "LOSS")
         else:
             return Reward(reward, "STEP")
+

@@ -234,7 +234,6 @@ class MCTS():
                     node.update(reward.get_value(), reward)
             if self.root.max_value.get_type() == "WIN":
                 break
-            
         if self.root.max_value.get_type() == "WIN":
             moves = []
             node = self.root
