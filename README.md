@@ -8,7 +8,7 @@ This repository contains a Sokoban solver called Schokoban developed as part of 
 
 The primary aim of this thesis was not to develop the most performant Sokoban Solver but to explore the effectiveness of the MCTS algorithm within the context of Sokoban. The research focused on identifying and refining strategies that best adapt MCTS to the challenges presented by Sokoban puzzles.
 
-Despite the experimental focus on MCTS, maintaining the solver's practical usability was essential. Thus, a significant goal was to ensure the solver's capability to successfully handle most levels in David W. Skinner's renowned [Microban III level collection](http://www.abelmartin.com/rj/sokobanJS/Skinner/David%20W.%20Skinner%20-%20Sokoban.htm).
+Despite the experimental focus on MCTS, maintaining the solver's practical usability was essential. Thus, a significant goal was to ensure the solver's capability to successfully handle most levels in David W. Skinner's [Microban III level collection](http://www.abelmartin.com/rj/sokobanJS/Skinner/David%20W.%20Skinner%20-%20Sokoban.htm).
 
 However, the development process also required testing the algorithm's performance on less complex puzzles. For this purpose, simpler levels available [here](https://www.cbc.ca/kids/games/play/sokoban) were utilized.
 
@@ -100,7 +100,16 @@ For solving more involved levels it might be necessary to increase the number of
 
 | Number of Iterations | 25 | 50 | 100 | 1000 | 2000 | 5000 | 10000 | 100000 |
 |----------------------|----|----|-----|------|------|------|-------|--------|
-| Vanilla MCTS         | 4  | 5  | 6   | 7    | 5    | 6    | 17    | 50     |
+| Vanillaban           | 4  | 5  | 6   | 7    | 5    | 6    | 17    | 50     |
 | Schokoban            | 6  | 20 | 41  | 60   | 60   | 60   | 60    | 60     |
 
-The table above shows the number of levels solved by the vanilla MCTS and Schokoban solvers for different numbers of iterations. The results are based on the 60 levels in the Testsuite.
+Number of levels solved by the respective algorithm within the given number
+of iterations, out of the 60 levels contained in the [CBC Level Colection](https://www.cbc.ca/kids/games/play/sokoban).
+
+| Number of Iterations | 50 | 100 | 1000 | 2000 | 5000 | 10000 | 100000 |
+|----------------------|----|-----|------|------|------|-------|--------|
+| Vanillaban           | 0  | 6   | 18   | 24   | 25   | 33    | 42     |
+| Schokoban            | 7  | 18  | 60   | 70   | 77   | 80    | 90     |
+
+Number of levels solved by the respective algorithm within the given number
+of iterations, out of the 100 levels contained in the [Microban Level Collection](http://www.abelmartin.com/rj/sokobanJS/Skinner/David%20W.%20Skinner%20-%20Sokoban.htm) by Skinner.
