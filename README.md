@@ -10,8 +10,7 @@ The primary aim of this thesis was not to develop the most performant Sokoban So
 
 Despite the experimental focus on MCTS, maintaining the solver's practical usability was essential. Thus, a significant goal was to ensure the solver's capability to successfully handle most levels in David W. Skinner's [Microban III level collection](http://www.abelmartin.com/rj/sokobanJS/Skinner/David%20W.%20Skinner%20-%20Sokoban.htm).
 
-However, the development process also required testing the algorithm's performance on less complex puzzles. For this purpose, simpler levels available [here](https://www.cbc.ca/kids/games/play/sokoban) were utilized.
-
+However, the development process also required testing the algorithm's performance on less complex puzzles. For this purpose, simpler levels in the CBC Level collection, which are available [online](https://www.cbc.ca/kids/games/play/sokoban), were utilized.
 ## Installation and Setup
 Follow these steps to install and set up the solver:
 #### Clone Repository 
@@ -49,7 +48,7 @@ deactivate
 ## Usage
 For testing the solver on a single level useing demo.py is most convenient. 
 demo.py takes the following arguments:
-- `--folder`: the folder containing the levels, e.g. `Microban/`, `Testsuite/`, or `CustomLevels/`
+- `--folder`: the folder containing the levels, e.g. `Microban/`, `CBC/`, or `CustomLevels/`
 - `--level_id`: the index of the level in the folder
 - `--num_iters`: the number of iterations of the MCTS
 - `--mode`: the mode of the solver, either `schoko` or `vanilla`, generally `schoko` performs better

@@ -1,0 +1,62 @@
+python3 CBC/solve_levels.py --num_iters=100000 --mode=vanilla
+Level 1: WIN, Solution Length: 2.                                           
+Level 2: WIN, Solution Length: 2.                                           
+Level 3: WIN, Solution Length: 7.                                           
+Level 4: WIN, Solution Length: 7.                                           
+Level 5: WIN, Solution Length: 5.                                           
+Level 6: WIN, Solution Length: 7.                                           
+Level 7: WIN, Solution Length: 14.                                          
+Level 8: WIN, Solution Length: 13.                                          
+Level 9: WIN, Solution Length: 7.                                           
+Level 10: WIN, Solution Length: 13.                                         
+Level 11: WIN, Solution Length: 8.                                          
+Level 12: WIN, Solution Length: 7.                                          
+Level 13: WIN, Solution Length: 1.                                          
+Level 14: WIN, Solution Length: 11.                                         
+Level 15: WIN, Solution Length: 10.                                         
+Level 16: WIN, Solution Length: 10.                                         
+Level 17: WIN, Solution Length: 12.                                         
+Level 18: WIN, Solution Length: 6.                                          
+Level 19: WIN, Solution Length: 6.                                          
+Level 20: WIN, Solution Length: 11.                                         
+Level 21: WIN, Solution Length: 10.                                         
+Level 22: WIN, Solution Length: 15.                                         
+Level 23: WIN, Solution Length: 7.                                          
+Level 24: WIN, Solution Length: 17.                                         
+Level 25: WIN, Solution Length: 9.                                          
+Level 26: WIN, Solution Length: 15.                                         
+Level 27: WIN, Solution Length: 16.                                         
+Level 28: WIN, Solution Length: 11.                                         
+Level 29: WIN, Solution Length: 10.                                         
+Level 30: LOSS.                                                             
+Level 31: WIN, Solution Length: 14.                                         
+Level 32: WIN, Solution Length: 11.                                         
+Level 33: WIN, Solution Length: 11.                                         
+Level 34: WIN, Solution Length: 9.                                          
+Level 35: WIN, Solution Length: 15.                                         
+Level 36: WIN, Solution Length: 20.                                         
+Level 37: WIN, Solution Length: 10.                                         
+Level 38: WIN, Solution Length: 18.                                         
+Level 39: WIN, Solution Length: 19.                                         
+Level 40: LOSS.                                                             
+Level 41: WIN, Solution Length: 17.                                         
+Level 42: WIN, Solution Length: 16.                                         
+Level 43: WIN, Solution Length: 10.                                         
+Level 44: WIN, Solution Length: 11.                                         
+Level 45: WIN, Solution Length: 17.                                         
+Level 46: WIN, Solution Length: 12.                                         
+Level 47: WIN, Solution Length: 17.                                         
+Level 48: WIN, Solution Length: 14.                                         
+Level 49: WIN, Solution Length: 18.                                         
+Level 50: LOSS.                                                             
+Level 51: WIN, Solution Length: 14.                                         
+Level 52: LOSS.                                                             
+Level 53: WIN, Solution Length: 13.                                         
+Level 54: WIN, Solution Length: 17.                                         
+Level 55: LOSS.                                                             
+Level 56: LOSS.                                                             
+Level 57: LOSS.                                                             
+Level 58: LOSS.                                                             
+Level 59: LOSS.                                                             
+Level 60: LOSS.                                                             
+Soleved 50 out of 60 levels.

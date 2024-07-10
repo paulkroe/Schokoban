@@ -48,7 +48,7 @@ def calculate_tiles(path):
 if __name__ == "__main__":
 
     # calculate search space complexity for kids levels
-    folder_path = 'Testsuite/'
+    folder_path = 'CBC/'
     files = os.listdir(folder_path)
     level_files = [file for file in files if file.startswith('level')]
     NUM_LEVELS = len(level_files)
@@ -63,7 +63,7 @@ if __name__ == "__main__":
         comp.append([n, int(p), b, int(comb(p, b)*(n-b))])
     
     # save results as csv
-    with open('utils/Testsuite_search_space_comp.csv', 'w', newline='') as file:
+    with open('utils/CBC_search_space_comp.csv', 'w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(['tiles', 'non freezing tiles', 'stones', 'search space size'])
         for values in comp:

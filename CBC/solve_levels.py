@@ -16,7 +16,7 @@ parser.add_argument('--mode', type=str, default="schoko", help='schoko for using
 
 args = parser.parse_args()
 
-folder_path = 'Testsuite/'
+folder_path = 'CBC/'
 files = os.listdir(folder_path)
 level_files = [file for file in files if file.startswith('level')]
 NUM_LEVELS = len(level_files)
@@ -25,9 +25,12 @@ outcomes = [None for _ in range(NUM_LEVELS)]
 
 for level_id in range(NUM_LEVELS):
     solver = sokoban_solver.Solver()
-    outcome = solver.solve(level_id+1, folder_path, args.num_iters, args.verbose, args.mode)
+    outcome, length = solver.solve(level_id+1, folder_path, args.num_iters, args.verbose, args.mode)
     print("                                                                            ", end="\r")
-    print(f"Level {level_id+1}: {outcome}.")
+    if outcome == "WIN":
+        print(f"Level {level_id+1}: {outcome}, Solution Length: {length}.")
+    else:
+        print(f"Level {level_id+1}: {outcome}.")
     outcomes[level_id] = 1 if outcome == "WIN" else 0
 
 print(f"Soleved {sum(outcomes)} out of {NUM_LEVELS} levels.")

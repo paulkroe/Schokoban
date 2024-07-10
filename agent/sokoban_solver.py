@@ -22,7 +22,7 @@ class Solver():
         
         file_path = "deadlock_detection/"+folder+"level_"+str(level_id)+".npy"
         
-        if not os.path.isfile(file_path) or not (folder in ["Microban/", "Testsuite/"]):
+        if not os.path.isfile(file_path) or not (folder in ["Microban/", "CBC/"]):
             compute_deadlocks(level_id, folder, verbose=0)
             
 
@@ -50,8 +50,8 @@ class Solver():
                     outcome = board.reward().get_type()
                     if outcome == "WIN":
                         assert len(board.find_elements(Sokoban.Elements.BOX.value)) == 0       
-                    return board.reward().get_type()
+                    return board.reward().get_type(), len(moves)
                 self.print("==========", verbose)
                 self.print(board, verbose)
-            
-        return "LOSS"
+                
+        return "LOSS", None
