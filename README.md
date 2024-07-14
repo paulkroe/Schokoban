@@ -97,18 +97,18 @@ For solving more involved levels it might be necessary to increase the number of
 
 ## Results
 
-| Number of Iterations | 25 | 50 | 100 | 1000 | 2000 | 5000 | 10000 | 100000 |
-|----------------------|----|----|-----|------|------|------|-------|--------|
-| Vanillaban           | 4  | 5  | 6   | 7    | 5    | 6    | 17    | 50     |
-| Schokoban            | 6  | 20 | 41  | 60   | 60   | 60   | 60    | 60     |
+| Number of Iterations | 25 | 50 | 100 | 500 | 1000 | 2000 | 5000 | 10000 | 100000 |
+|----------------------|----|----|-----|-----|------|------|------|-------|--------|
+| Vanillaban           | 4  | 12 | 16  | 38  | 41   | 44   | 49   | 49    | 50     |
+| Schokoban            | 6  | 20 | 41  | 60  | 60   | 60   | 60   | 60    | 60     |
 
 Number of levels solved by the respective algorithm within the given number
 of iterations, out of the 60 levels contained in the [CBC Level Colection](https://www.cbc.ca/kids/games/play/sokoban).
 
-| Number of Iterations | 50 | 100 | 1000 | 2000 | 5000 | 10000 | 100000 |
-|----------------------|----|-----|------|------|------|-------|--------|
-| Vanillaban           | 0  | 6   | 18   | 24   | 25   | 33    | 42     |
-| Schokoban            | 7  | 18  | 60   | 70   | 77   | 80    | 90     |
+| Number of Iterations | 25 | 50 | 100 | 500 | 1000 | 2000 | 5000 | 10000 | 100000 |
+|----------------------|----|----|-----|-----|------|------|------|-------|--------|
+| Vanillaban           | 0  | 1  | 7   | 18  | 22   | 29   | 34   | 36    | 44     |
+| Schokoban            | 0  | 7  | 18  | 50  | 60   | 70   | 77   | 80    | 90     |
 
 Number of levels solved by the respective algorithm within the given number
 of iterations, out of the 100 levels contained in the [Microban Level Collection](http://www.abelmartin.com/rj/sokobanJS/Skinner/David%20W.%20Skinner%20-%20Sokoban.htm) by Skinner.
