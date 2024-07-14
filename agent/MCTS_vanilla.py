@@ -9,9 +9,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import game.Sokoban as Sokoban
 
 # constant balancing exploration and exploitation
-C_PUT = 32 
-D_PUT = 8
-
+C_PUT = 8
 class Node():
     def __init__(self, parent, state, move):
         # board state represented by the node
@@ -30,15 +28,13 @@ class Node():
         self.reward = self.state.reward()
         # maximum reward of the node's and descendants, used for extracting the solution
         self.max_value = self.reward
-        # sum of squares of rewards, used for calculating the variance of the rewards
-        self.sum_of_squares = self.reward.get_value()**2
         
     @property
     def u(self):
         if self.parent is None:
             return 0
         # exploration term in adjusted UCTS formula
-        return C_PUT * np.sqrt(2*np.log(self.parent.n)) / (self.n) + np.sqrt(self.sum_of_squares / (self.n) - self.q**2 + D_PUT)
+        return C_PUT * np.sqrt(2*np.log(self.parent.n)) / (self.n)
    
     # returns adjusted UCT score 
     @property
@@ -49,7 +45,6 @@ class Node():
     def update(self, value, max_value):
         self.q = (self.q * self.n + value) / (self.n + 1)
         self.n += 1
-        self.sum_of_squares = self.sum_of_squares + value**2
         if self.max_value.get_value() < max_value.get_value():
             self.max_value = max_value
         if self.parent:
