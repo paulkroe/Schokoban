@@ -1,4 +1,4 @@
- python3 CBC/solve_levels.py --num_iters=25 --mode=vanilla
+python3 CBC/solve_levels.py --num_iters=25 --mode=vanilla
 Level 1: WIN, Solution Length: 2.                                           
 Level 2: WIN, Solution Length: 2.                                           
 Level 3: WIN, Solution Length: 7.                                           

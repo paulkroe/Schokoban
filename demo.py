@@ -20,7 +20,9 @@ if args.seed:
     random.seed(args.seed)
 
 solver = sokoban_solver.Solver()
-outcome = solver.solve(args.level_id, args.folder, args.num_iters, args.verbose, args.mode)
-if args.verbose in [0,2]:
-    print("                                                                            ", end="\r")
-    print(outcome)
+outcome, sol_length = solver.solve(args.level_id, args.folder, args.num_iters, args.verbose, args.mode)
+print("                                                                            ", end="\r")
+if outcome == "WIN":
+    print(f"Level {args.level_id}: {outcome}, Solution Length: {sol_length}.")
+else:
+    print(f"Level {args.level_id}: {outcome}.")

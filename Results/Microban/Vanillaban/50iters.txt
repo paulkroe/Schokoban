@@ -1,6 +1,6 @@
-python3 Microban/solve_levels.py --num_iters=50 --mode=schoko
+python3 Microban/solve_levels.py --num_iters=50 --mode=vanilla
 Level 1: LOSS.                                                              
-Level 2: WIN, Solution Length: 11.                                          
+Level 2: LOSS.                                                              
 Level 3: LOSS.                                                              
 Level 4: LOSS.                                                              
 Level 5: LOSS.                                                              
@@ -59,14 +59,14 @@ Level 57: LOSS.
 Level 58: LOSS.                                                             
 Level 59: LOSS.                                                             
 Level 60: LOSS.                                                             
-Level 61: WIN, Solution Length: 11.                                         
+Level 61: LOSS.                                                             
 Level 62: LOSS.                                                             
 Level 63: LOSS.                                                             
 Level 64: LOSS.                                                             
 Level 65: LOSS.                                                             
 Level 66: LOSS.                                                             
-Level 67: WIN, Solution Length: 9.                                          
-Level 68: WIN, Solution Length: 7.                                          
+Level 67: LOSS.                                                             
+Level 68: LOSS.                                                             
 Level 69: LOSS.                                                             
 Level 70: LOSS.                                                             
 Level 71: LOSS.                                                             
@@ -89,7 +89,7 @@ Level 87: LOSS.
 Level 88: LOSS.                                                             
 Level 89: LOSS.                                                             
 Level 90: LOSS.                                                             
-Level 91: WIN, Solution Length: 8.                                          
+Level 91: LOSS.                                                             
 Level 92: WIN, Solution Length: 6.                                          
 Level 93: LOSS.                                                             
 Level 94: LOSS.                                                             
@@ -98,5 +98,5 @@ Level 96: LOSS.
 Level 97: LOSS.                                                             
 Level 98: LOSS.                                                             
 Level 99: LOSS.                                                             
-Level 100: WIN, Solution Length: 8.                                         
-Soleved 7 out of 100 levels.
+Level 100: LOSS.                                                            
+Soleved 1 out of 100 levels.
