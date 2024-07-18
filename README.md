@@ -15,26 +15,26 @@ However, the development process also required testing the algorithm's performan
 Follow these steps to install and set up the solver:
 #### Clone Repository 
 ```
-git clone https://github.com/paulkroe/SokobanSolver.git
+git clone https://github.com/paulkroe/Schokoban.git
 ```
 #### Set up Environment
-Move to the SokobanSolver directory and set up a virtual environment.
+Move to the Schokoban directory and set up a virtual environment.
 For Linux and MacOS:
 ```
-cd SokobanSolver
+cd Schokoban
 python3 -m venv env
 source env/bin/activate
 pip install -r requirements.txt
 ```
 For Windows:
 ```
-cd SokobanSolver
+cd Schokoban
 python -m venv env
 env\Scripts\activate
 pip install -r requirements.txt
 ```
 #### Usage
-Now from within the SokobanSolver folder the solver can be used. For example:
+Now from within the Schokoban folder the solver can be used. For example:
 ```
 python3 demo.py --folder=Microban/ --level_id=1 --mode=schoko --num_iters=1000 --verbose=3
 ```
